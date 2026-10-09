@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RNG Roller — Update 1.35</title>
+<title>RNG Roller — Update 1.4</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -13,29 +13,37 @@
     user-select: none; -webkit-user-select: none;
   }
   .wrap { max-width: 1050px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 18px; }
+  header { text-align: center; margin-bottom: 14px; }
   h1 { letter-spacing: 4px; }
   .ver { opacity: .5; font-size: .8em; letter-spacing: 2px; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .tabs button { padding: 10px 16px; background: #161a2e; border: 1px solid #252a4a; }
+  .tabs button.active { background: #6c3cff; border-color: #6c3cff; }
+  .page { display: none; }
+  .page.active { display: block; }
 
   .grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
   @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
 
   .panel { background: #12152acc; border: 1px solid #252a4a; border-radius: 16px; padding: 16px; }
   .panel + .panel { margin-top: 16px; }
-  h2 { font-size: .95em; letter-spacing: 2px; margin-bottom: 12px; opacity: .85; display: flex; justify-content: space-between; }
+  h2 { font-size: .95em; letter-spacing: 2px; margin-bottom: 12px; opacity: .85; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
   @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
   .stat { background: #161a2e; padding: 10px; border-radius: 10px; text-align: center; font-size: .8em; }
   .stat b { display: block; font-size: 1.45em; margin-top: 2px; }
+  .bigstats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .bigstats .stat { font-size: .9em; padding: 14px; }
 
   .box {
     height: 210px; border-radius: 16px; background: #0d1022; border: 3px solid #333;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    margin-bottom: 14px; transition: border-color .15s, box-shadow .3s; overflow: hidden;
+    margin-bottom: 14px; transition: border-color .15s, box-shadow .3s; overflow: hidden; padding: 0 10px;
   }
-  .box .name { font-size: 2.6em; font-weight: 800; text-align: center; }
-  .box .odds { opacity: .7; margin-top: 6px; }
+  .box .name { font-size: 2.4em; font-weight: 800; text-align: center; }
+  .box .odds { opacity: .7; margin-top: 6px; text-align: center; }
   .box.spinning .name { filter: blur(1px); opacity: .85; }
   .glow { animation: shake .5s; }
   .pop .name { animation: pop .35s ease-out; }
@@ -45,6 +53,14 @@
     60% { transform: translateX(-6px); } 80% { transform: translateX(6px); }
   }
   @keyframes pop { 0% { transform: scale(.6); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+  .shiny { text-shadow: 0 0 12px #fff8, 0 0 24px #ffd70088; }
+  .rainbow {
+    background: linear-gradient(90deg, #ff5252, #ffb142, #fff156, #4cff8a, #48dbfb, #a55eea, #ff5252);
+    background-size: 300% 100%; -webkit-background-clip: background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; animation: rainbow 2s linear infinite;
+  }
+  @keyframes rainbow { to { background-position: 300% 0; } }
 
   .effects { display: flex; gap: 6px; flex-wrap: wrap; min-height: 26px; margin-bottom: 12px; justify-content: center; }
   .chip { font-size: .8em; padding: 4px 10px; border-radius: 99px; background: #2a1f4a; border: 1px solid #6c3cff; }
@@ -76,6 +92,24 @@
   .item { background: #161a2e; padding: 10px; border-radius: 10px; border-left: 5px solid #444; }
   .item .n { font-weight: 700; }
   .item .c { opacity: .7; font-size: .85em; }
+  .item .m { font-size: .8em; margin-top: 3px; }
+
+  .achs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .ach { background: #161a2e; padding: 12px; border-radius: 10px; border: 1px solid #252a4a; opacity: .6; }
+  .ach.done { opacity: 1; border-color: #1fa65a; background: #13261d; }
+  .ach .t { font-weight: 800; }
+  .ach .d { font-size: .85em; opacity: .8; margin: 3px 0 8px; }
+  .bar { height: 6px; background: #0d1022; border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: #6c3cff; }
+  .ach.done .bar i { background: #1fa65a; }
+  .ach .r { font-size: .8em; margin-top: 6px; opacity: .85; }
+
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ffffff0d; }
+  .row:last-child { border: none; }
+  .row small { display: block; opacity: .6; font-size: .8em; margin-top: 2px; }
+  .tog { min-width: 70px; padding: 8px 12px; background: #4a1a1a; }
+  .tog.on { background: #1fa65a; }
+  .tog:hover:not(:disabled) { filter: brightness(1.15); }
 
   .saveStatus { font-size: .85em; padding: 8px 10px; border-radius: 8px; margin-bottom: 10px; background: #12301f; color: #6fe3a0; }
   .saveStatus.bad { background: #3a2410; color: #ffb86b; }
@@ -85,14 +119,17 @@
     resize: vertical; user-select: text; -webkit-user-select: text;
   }
   .saveMsg { font-size: .8em; margin-top: 6px; min-height: 1em; opacity: .85; }
-
   .reset { margin-top: 16px; background: #4a1a1a; width: 100%; }
   .reset:hover:not(:disabled) { background: #6b2323; }
 
+  .cl h3 { margin-bottom: 6px; }
+  .cl h3 span { opacity: .5; font-size: .75em; font-weight: 500; }
+  .cl ul { padding-left: 20px; opacity: .9; line-height: 1.6; }
+
   .toast {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-140px);
-    background: #000d; padding: 14px 24px; border-radius: 12px; font-weight: 800; font-size: 1.15em;
-    border: 2px solid #fff; transition: transform .3s; z-index: 10; text-align: center;
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-160px);
+    background: #000d; padding: 14px 24px; border-radius: 12px; font-weight: 800; font-size: 1.1em;
+    border: 2px solid #fff; transition: transform .3s; z-index: 10; text-align: center; max-width: 90vw;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
@@ -102,74 +139,107 @@
 <div class="wrap">
   <header>
     <h1>🎲 RNG ROLLER</h1>
-    <div class="ver">UPDATE 1.35</div>
+    <div class="ver">UPDATE 1.4</div>
   </header>
 
-  <div class="grid">
-    <!-- LEFT: rolling -->
-    <div>
-      <div class="panel">
-        <div class="stats">
-          <div class="stat">Coins<b id="coins">0</b></div>
-          <div class="stat">Luck<b id="luck">1.0x</b></div>
-          <div class="stat">Rolls<b id="rolls">0</b></div>
-          <div class="stat">Best<b id="best">—</b></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="game" class="active">🎲 Game</button>
+    <button data-tab="ach" id="achTab">🏆 Achievements</button>
+    <button data-tab="stats">📊 Stats</button>
+    <button data-tab="settings">⚙️ Settings</button>
+    <button data-tab="changelog">📜 Changelog</button>
+  </nav>
+
+  <!-- GAME -->
+  <section class="page active" id="page-game">
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <div class="stats">
+            <div class="stat">Coins<b id="coins">0</b></div>
+            <div class="stat">Luck<b id="luck">1.0x</b></div>
+            <div class="stat">Rolls<b id="rolls">0</b></div>
+            <div class="stat">Best<b id="best">—</b></div>
+          </div>
+          <div class="box" id="box">
+            <div class="name" id="resultName">Press ROLL</div>
+            <div class="odds" id="resultOdds">or hit Space</div>
+          </div>
+          <div class="effects" id="effects"></div>
+          <div class="main-btns">
+            <button id="rollBtn">ROLL</button>
+            <button id="autoBtn">AUTO: OFF</button>
+          </div>
         </div>
-
-        <div class="box" id="box">
-          <div class="name" id="resultName">Press ROLL</div>
-          <div class="odds" id="resultOdds">or hit Space</div>
-        </div>
-
-        <div class="effects" id="effects"></div>
-
-        <div class="main-btns">
-          <button id="rollBtn">ROLL</button>
-          <button id="autoBtn">AUTO: OFF</button>
+        <div class="panel">
+          <h2><span>COLLECTION</span><span id="colCount"></span></h2>
+          <div class="collection" id="collection"></div>
         </div>
       </div>
-
-      <div class="panel">
-        <h2><span>COLLECTION</span><span id="colCount">0/0</span></h2>
-        <div class="collection" id="collection"></div>
+      <div>
+        <div class="panel">
+          <h2>UPGRADES</h2>
+          <div class="shop">
+            <button id="luckBtn"></button>
+            <button id="maxBtn"></button>
+            <button id="speedBtn" class="wide"></button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>🧪 POTIONS</h2>
+          <div class="shop" id="potionShop"></div>
+        </div>
+        <div class="panel">
+          <h2>RECENT ROLLS</h2>
+          <div class="log" id="log"></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <!-- RIGHT: shop + log + save -->
-    <div>
-      <div class="panel">
-        <h2>UPGRADES</h2>
-        <div class="shop">
-          <button id="luckBtn"></button>
-          <button id="maxBtn"></button>
-          <button id="speedBtn" class="wide"></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>🧪 POTIONS</h2>
-        <div class="shop" id="potionShop"></div>
-      </div>
-
-      <div class="panel">
-        <h2>RECENT ROLLS</h2>
-        <div class="log" id="log"></div>
-      </div>
-
-      <div class="panel">
-        <h2>💾 SAVE</h2>
-        <div class="saveStatus" id="saveStatus">Checking save...</div>
-        <div class="shop">
-          <button id="exportBtn">Export Code</button>
-          <button id="importBtn">Load Code</button>
-        </div>
-        <textarea id="saveBox" placeholder="Export puts your save code here. To load, paste a code here and press Load Code."></textarea>
-        <div class="saveMsg" id="saveMsg"></div>
-      </div>
-
-      <button class="reset" id="resetBtn">Reset Progress</button>
+  <!-- ACHIEVEMENTS -->
+  <section class="page" id="page-ach">
+    <div class="panel">
+      <h2><span>🏆 ACHIEVEMENTS</span><span id="achCount"></span></h2>
+      <div class="achs" id="achList"></div>
     </div>
-  </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="page" id="page-stats">
+    <div class="panel">
+      <h2>📊 STATS</h2>
+      <div class="bigstats" id="statList"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="page" id="page-settings">
+    <div class="grid">
+      <div class="panel">
+        <h2>⚙️ SETTINGS</h2>
+        <div id="settingList"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>💾 SAVE</h2>
+          <div class="saveStatus" id="saveStatus">Checking save...</div>
+          <div class="shop">
+            <button id="exportBtn">Export Code</button>
+            <button id="importBtn">Load Code</button>
+          </div>
+          <textarea id="saveBox" placeholder="Export puts your save code here. To load, paste a code here and press Load Code."></textarea>
+          <div class="saveMsg" id="saveMsg"></div>
+        </div>
+        <button class="reset" id="resetBtn">Reset Progress</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHANGELOG -->
+  <section class="page" id="page-changelog">
+    <div class="panel cl" id="changelog"></div>
+  </section>
 </div>
 
 <script>
@@ -187,13 +257,20 @@ const RARITIES = [
   { name: "??? SECRET", chance: 100000000, color: "#ffffff", coins: 3000000 }
 ];
 
+// Mutations: index 0 = normal
+const MUTATIONS = [
+  { name: "",        icon: "",   chance: 1,   mult: 1 },
+  { name: "Shiny",   icon: "✨", chance: 50,  mult: 3 },
+  { name: "Rainbow", icon: "🌈", chance: 500, mult: 10 }
+];
+
 // ---- Balance settings ----
 const LUCK_BASE_COST = 25;
 const LUCK_COST_GROWTH = 1.06;
 const LUCK_STEP = 0.1;
 const SPEED_BASE_COST = 1500;
 const SPEED_COST_GROWTH = 2.5;
-const SAVE_KEY = "rngRollerSaveV3"; // same slot as 1.2/1.3 so progress carries over
+const SAVE_KEY = "rngRollerSaveV3"; // same slot since 1.2
 
 const POTIONS = [
   { id: "lucky", name: "Lucky Potion", desc: "2x luck • 50 rolls",            cost: 400,  rolls: 50,  luck: 2, coins: 1 },
@@ -201,13 +278,82 @@ const POTIONS = [
   { id: "mega",  name: "Mega Potion",  desc: "3x luck + 2x coins • 25 rolls", cost: 5000, rolls: 25,  luck: 3, coins: 2 }
 ];
 
-const fresh = () => ({ coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, log: [], potions: {} });
+const SETTINGS = [
+  { k: "anim",    name: "Roll animation", desc: "Spin before showing manual rolls" },
+  { k: "popups",  name: "Pop-ups",        desc: "Alerts for rare rolls, mutations and achievements" },
+  { k: "fx",      name: "Glow & shake",   desc: "Box effects on Legendary+ and Rainbow rolls" },
+  { k: "compact", name: "Short numbers",  desc: "Show 1.2M instead of 1,200,000" }
+];
+
+const CHANGELOG = [
+  { v: "1.4", t: "Mutations & more", notes: [
+    "Added mutations: ✨ Shiny (1 in 50, 3x coins) and 🌈 Rainbow (1 in 500, 10x coins)",
+    "Added 20 achievements with coin rewards",
+    "Added a Stats page",
+    "Added Settings: roll animation, pop-ups, glow & shake, short numbers",
+    "Added this Changelog",
+    "New tab layout; Save and Reset moved to Settings" ] },
+  { v: "1.36", t: "Official website", notes: [ "The game now has its own website on GitHub Pages" ] },
+  { v: "1.35", t: "Saving", notes: [
+    "Auto-save every roll, every 5 seconds and when you leave",
+    "Save status indicator",
+    "Export / Load save codes" ] },
+  { v: "1.3", t: "Layout & potions", notes: [
+    "New two-column layout",
+    "Added Lucky, Coin and Mega potions",
+    "Rolling animation for manual rolls",
+    "Removed hold-to-spam (Buy Max does the job)" ] },
+  { v: "1.2", t: "Harder", notes: [
+    "Luck cost now scales up with every boost",
+    "Lower coin rewards for rare rolls",
+    "Auto Speed costs more" ] },
+  { v: "1.1", t: "Big update", notes: [
+    "Hold-to-spam Luck Boost and Buy Max",
+    "New rarities: Divine, Ethereal, ??? SECRET",
+    "Best Roll stat, roll log, Auto Speed upgrade, rare roll alerts" ] },
+  { v: "1.0", t: "Release", notes: [ "Rolling, coins, Luck Boost, auto roll and the collection" ] }
+];
+
+const fresh = () => ({
+  coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, log: [], potions: {},
+  shiny: {}, rainbow: {}, ach: {},
+  stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, rarePlus: 0, time: 0, first: Date.now() },
+  settings: { anim: true, popups: true, fx: true, compact: false }
+});
 let state = fresh();
 let autoTimer = null;
 let spinning = false;
+let tab = "game";
+
+// ---------- Helpers ----------
+function fmt(n) {
+  n = Math.floor(n);
+  if (state.settings.compact && n >= 10000) {
+    const u = ["", "K", "M", "B", "T", "Qa"];
+    let k = 0, x = n;
+    while (x >= 1000 && k < u.length - 1) { x /= 1000; k++; }
+    return (x < 100 ? x.toFixed(1) : Math.floor(x)) + u[k];
+  }
+  return n.toLocaleString();
+}
+function fmtTime(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
+}
+const foundKinds = () => RARITIES.filter(r => state.found[r.name]).length;
+const label = (i, m) => (m ? MUTATIONS[m].icon + " " + MUTATIONS[m].name + " " : "") + RARITIES[i].name;
+
+function earn(n) {
+  state.coins += n;
+  state.stats.earned += n;
+  if (state.coins > state.stats.peak) state.stats.peak = state.coins;
+}
+function spend(n) {
+  state.coins -= n;
+  state.stats.spent += n;
+}
 
 // ---------- Saving ----------
-// Check if this site lets us use browser storage
 const store = (() => {
   try {
     const k = "__rng_test__";
@@ -228,16 +374,22 @@ function setSaveStatus(ok) {
     : "⚠️ This site blocks saving. Use Export Code to keep your progress.";
 }
 
-// Make sure loaded data is valid and has every field
 function sanitize(s) {
   if (!s || typeof s !== "object" || typeof s.coins !== "number") throw new Error("bad save");
   const out = Object.assign(fresh(), s);
-  if (typeof out.found !== "object" || !out.found) out.found = {};
-  if (typeof out.potions !== "object" || !out.potions) out.potions = {};
-  if (!Array.isArray(out.log)) out.log = [];
-  out.log = out.log.filter(i => Number.isInteger(i) && i >= 0 && i < RARITIES.length).slice(0, 8);
-  out.best = Math.min(Math.max(-1, out.best | 0), RARITIES.length - 1);
+  ["found", "potions", "shiny", "rainbow", "ach"].forEach(k => {
+    if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = {};
+  });
   ["coins", "luckLvl", "rolls", "speedLvl"].forEach(k => { out[k] = Math.max(0, Number(out[k]) || 0); });
+  const hadStats = s.stats && typeof s.stats === "object";
+  out.stats = Object.assign(fresh().stats, hadStats ? s.stats : {});
+  if (!hadStats) { out.stats.luckBought = out.luckLvl; out.stats.peak = out.coins; } // older saves
+  out.settings = Object.assign(fresh().settings, s.settings && typeof s.settings === "object" ? s.settings : {});
+  out.log = (Array.isArray(out.log) ? out.log : [])
+    .map(e => Array.isArray(e) ? e : [e, 0]) // old logs were plain numbers
+    .filter(e => Number.isInteger(e[0]) && e[0] >= 0 && e[0] < RARITIES.length && [0, 1, 2].includes(e[1]))
+    .slice(0, 8);
+  out.best = Math.min(Math.max(-1, out.best | 0), RARITIES.length - 1);
   return out;
 }
 
@@ -256,7 +408,6 @@ function save() {
   } catch (e) { setSaveStatus(false); }
 }
 
-// Save codes (works even when storage is blocked)
 const encodeSave = s => btoa(unescape(encodeURIComponent(JSON.stringify(s))));
 const decodeSave = c => JSON.parse(decodeURIComponent(escape(atob(c.trim()))));
 
@@ -283,20 +434,153 @@ document.getElementById("importBtn").onclick = () => {
   try {
     const loaded = sanitize(decodeSave(code));
     if (!confirm("Load this save? Your current progress will be replaced.")) return;
-    if (autoTimer) document.getElementById("autoBtn").click();
+    stopAuto();
     state = loaded;
-    save(); render(); resetBox();
+    save(); render(); resetBox(); renderTab();
     saveMsg("✅ Save loaded!", "#6fe3a0");
-    toast("💾 Save loaded!", "#6fe3a0");
+    toast("💾 Save loaded!", "#6fe3a0", true);
   } catch (e) {
     saveMsg("❌ That code doesn't work. Check you copied all of it.", "#ff6b6b");
   }
 };
 
-// Extra safety: save every 5s and when leaving/switching tabs
 setInterval(save, 5000);
 window.addEventListener("beforeunload", save);
 document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+
+// ---------- Achievements ----------
+const ACH = [
+  { id: "r100",    name: "Getting Started",  desc: "Roll 100 times",                   reward: 200,      p: () => [state.rolls, 100] },
+  { id: "r1k",     name: "Dedicated",        desc: "Roll 1,000 times",                 reward: 1500,     p: () => [state.rolls, 1000] },
+  { id: "r10k",    name: "No Life",          desc: "Roll 10,000 times",                reward: 15000,    p: () => [state.rolls, 10000] },
+  { id: "r100k",   name: "Touch Grass",      desc: "Roll 100,000 times",               reward: 150000,   p: () => [state.rolls, 100000] },
+  { id: "leg",     name: "Legendary!",       desc: "Find Legendary",                   reward: 500,      p: () => [state.best >= 4 ? 1 : 0, 1] },
+  { id: "myth",    name: "Mythical",         desc: "Find Mythic",                      reward: 3000,     p: () => [state.best >= 5 ? 1 : 0, 1] },
+  { id: "cel",     name: "Starstruck",       desc: "Find Celestial",                   reward: 20000,    p: () => [state.best >= 6 ? 1 : 0, 1] },
+  { id: "god",     name: "Ascended",         desc: "Find GODLY",                       reward: 100000,   p: () => [state.best >= 7 ? 1 : 0, 1] },
+  { id: "secret",  name: "???",              desc: "Find ??? SECRET",                  reward: 5000000,  p: () => [state.best >= 10 ? 1 : 0, 1] },
+  { id: "shiny1",  name: "Sparkly",          desc: "Get your first Shiny",             reward: 300,      p: () => [state.stats.shinies, 1] },
+  { id: "shiny50", name: "Shiny Hunter",     desc: "Get 50 Shinies",                   reward: 5000,     p: () => [state.stats.shinies, 50] },
+  { id: "rain1",   name: "Taste the Rainbow",desc: "Get your first Rainbow",           reward: 3000,     p: () => [state.stats.rainbows, 1] },
+  { id: "rainLeg", name: "Double Rare",      desc: "Get a Rainbow Legendary or better", reward: 50000,   p: () => [RARITIES.slice(4).some(r => state.rainbow[r.name]) ? 1 : 0, 1] },
+  { id: "luck5",   name: "Feeling Lucky",    desc: "Reach 5.0x base luck",             reward: 2000,     p: () => [state.luckLvl, 40] },
+  { id: "luck10",  name: "Lucky Charm",      desc: "Reach 10.0x base luck",            reward: 25000,    p: () => [state.luckLvl, 90] },
+  { id: "speed",   name: "Speed Demon",      desc: "Max out Auto Speed",               reward: 20000,    p: () => [state.speedLvl, 5] },
+  { id: "pot10",   name: "Alchemist",        desc: "Drink 10 potions",                 reward: 2000,     p: () => [state.stats.potions, 10] },
+  { id: "rich",    name: "Rich",             desc: "Have 100,000 coins at once",       reward: 10000,    p: () => [state.stats.peak, 100000] },
+  { id: "half",    name: "Collector",        desc: "Find 6 different rarities",        reward: 5000,     p: () => [foundKinds(), 6] },
+  { id: "hour",    name: "Committed",        desc: "Play for 1 hour",                  reward: 5000,     p: () => [state.stats.time, 3600] }
+];
+
+function checkAch() {
+  let any = false;
+  ACH.forEach(a => {
+    if (state.ach[a.id]) return;
+    const [c, g] = a.p();
+    if (c >= g) {
+      state.ach[a.id] = true;
+      earn(a.reward);
+      any = true;
+      toast(`🏆 ${a.name}! +${fmt(a.reward)} 🪙`, "#ffd700");
+    }
+  });
+  return any;
+}
+
+function renderAch() {
+  const done = ACH.filter(a => state.ach[a.id]).length;
+  document.getElementById("achCount").textContent = `${done}/${ACH.length}`;
+  document.getElementById("achList").innerHTML = ACH.map(a => {
+    const got = !!state.ach[a.id];
+    const [c, g] = a.p();
+    const pct = got ? 100 : Math.min(100, (c / g) * 100);
+    const prog = g > 1 && !got ? ` • ${fmt(Math.min(c, g))}/${fmt(g)}` : "";
+    return `<div class="ach ${got ? "done" : ""}">
+      <div class="t">${got ? "✅" : "🔒"} ${a.name}</div>
+      <div class="d">${a.desc}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="r">Reward: ${fmt(a.reward)} 🪙${prog}</div>
+    </div>`;
+  }).join("");
+}
+
+// ---------- Stats ----------
+function renderStats() {
+  const s = state.stats;
+  const items = [
+    ["Total Rolls", fmt(state.rolls)],
+    ["Coins Now", fmt(state.coins)],
+    ["Coins Earned", fmt(s.earned)],
+    ["Coins Spent", fmt(s.spent)],
+    ["Most Coins Held", fmt(s.peak)],
+    ["Base Luck", (1 + state.luckLvl * LUCK_STEP).toFixed(1) + "x"],
+    ["Luck Boosts Bought", fmt(s.luckBought)],
+    ["Potions Drunk", fmt(s.potions)],
+    ["Legendary+ Rolls", fmt(s.rarePlus)],
+    ["✨ Shinies", fmt(s.shinies)],
+    ["🌈 Rainbows", fmt(s.rainbows)],
+    ["Rarities Found", `${foundKinds()}/${RARITIES.length}`],
+    ["Achievements", `${ACH.filter(a => state.ach[a.id]).length}/${ACH.length}`],
+    ["Best Roll", state.best >= 0 ? RARITIES[state.best].name : "—"],
+    ["Time Played", fmtTime(s.time)],
+    ["Playing Since", new Date(s.first).toLocaleDateString()]
+  ];
+  document.getElementById("statList").innerHTML =
+    items.map(([k, v]) => `<div class="stat">${k}<b>${v}</b></div>`).join("");
+}
+
+// ---------- Settings ----------
+function renderSettings() {
+  const list = document.getElementById("settingList");
+  list.innerHTML = "";
+  SETTINGS.forEach(st => {
+    const on = !!state.settings[st.k];
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<div>${st.name}<small>${st.desc}</small></div>`;
+    const b = document.createElement("button");
+    b.className = "tog" + (on ? " on" : "");
+    b.textContent = on ? "ON" : "OFF";
+    b.onclick = () => {
+      state.settings[st.k] = !state.settings[st.k];
+      save(); renderSettings(); render();
+    };
+    row.appendChild(b);
+    list.appendChild(row);
+  });
+}
+
+// ---------- Changelog ----------
+function renderChangelog() {
+  document.getElementById("changelog").innerHTML = CHANGELOG.map((c, idx) =>
+    `<div style="${idx ? "margin-top:18px" : ""}">
+      <h3>Update ${c.v} <span>— ${c.t}</span></h3>
+      <ul>${c.notes.map(n => `<li>${n}</li>`).join("")}</ul>
+    </div>`).join("");
+}
+
+// ---------- Tabs ----------
+function renderTab() {
+  if (tab === "ach") renderAch();
+  else if (tab === "stats") renderStats();
+  else if (tab === "settings") renderSettings();
+}
+document.querySelectorAll("#tabs button").forEach(b => {
+  b.onclick = () => {
+    tab = b.dataset.tab;
+    document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x === b));
+    document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + tab));
+    renderTab();
+  };
+});
+
+// Playtime tracker
+setInterval(() => {
+  if (document.hidden) return;
+  state.stats.time++;
+  if (tab === "stats") renderStats();
+  if (state.stats.time % 60 === 0 && checkAch()) render();
+}, 1000);
 
 // ---------- Game logic ----------
 const baseLuck = () => 1 + state.luckLvl * LUCK_STEP;
@@ -313,35 +597,49 @@ function roll() {
   }
   return 0;
 }
+function rollMutation() {
+  if (Math.random() < 1 / MUTATIONS[2].chance) return 2;
+  if (Math.random() < 1 / MUTATIONS[1].chance) return 1;
+  return 0;
+}
 
-function applyRoll(i) {
+function applyRoll(i, m) {
   const r = RARITIES[i];
-  const earned = r.coins * potionMult("coins");
+  const earned = r.coins * MUTATIONS[m].mult * potionMult("coins");
   state.rolls++;
-  state.coins += earned;
+  earn(earned);
   state.found[r.name] = (state.found[r.name] || 0) + 1;
+  if (m === 1) { state.shiny[r.name] = (state.shiny[r.name] || 0) + 1; state.stats.shinies++; }
+  if (m === 2) { state.rainbow[r.name] = (state.rainbow[r.name] || 0) + 1; state.stats.rainbows++; }
+  if (i >= 4) state.stats.rarePlus++;
   if (i > state.best) state.best = i;
-  state.log.unshift(i);
+  state.log.unshift([i, m]);
   state.log = state.log.slice(0, 8);
   POTIONS.forEach(p => { if (state.potions[p.id] > 0) state.potions[p.id]--; });
-  showResult(i, earned);
-  if (i >= 5) toast(`✨ ${r.name.toUpperCase()}! (1 in ${r.chance.toLocaleString()})`, r.color);
+  showResult(i, m, earned);
+  if (i >= 5 || m === 2 || (m === 1 && i >= 4)) {
+    toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(r.chance * MUTATIONS[m].chance)})`, m === 2 ? "#ff6ec7" : r.color);
+  }
+  checkAch();
   save();
   render();
 }
 
-function quickRoll() { applyRoll(roll()); }
+function quickRoll() { applyRoll(roll(), rollMutation()); }
 
 function animatedRoll() {
   if (spinning || autoTimer) return;
+  if (!state.settings.anim) { quickRoll(); return; }
   spinning = true;
   render();
   const result = roll();
+  const mut = rollMutation();
   const box = document.getElementById("box");
   const nm = document.getElementById("resultName");
   const odds = document.getElementById("resultOdds");
   box.classList.add("spinning");
   box.style.boxShadow = "none";
+  nm.className = "name";
   odds.textContent = "rolling...";
 
   const maxShow = Math.min(RARITIES.length - 1, Math.max(4, state.best + 2));
@@ -356,39 +654,42 @@ function animatedRoll() {
     else {
       box.classList.remove("spinning");
       spinning = false;
-      applyRoll(result);
+      applyRoll(result, mut);
     }
   }
   step();
 }
 
-function showResult(i, earned) {
+function showResult(i, m, earned) {
   const r = RARITIES[i];
   const box = document.getElementById("box");
   const nm = document.getElementById("resultName");
-  nm.textContent = r.name;
+  nm.textContent = label(i, m);
   nm.style.color = r.color;
+  nm.className = "name" + (m === 2 ? " rainbow" : m === 1 ? " shiny" : "");
+  const mutTxt = m ? ` • ${MUTATIONS[m].mult}x ${MUTATIONS[m].name}` : "";
   document.getElementById("resultOdds").textContent =
-    `1 in ${r.chance.toLocaleString()}  •  +${earned.toLocaleString()} 🪙`;
-  box.style.borderColor = r.color;
+    `1 in ${fmt(r.chance)}${mutTxt}  •  +${fmt(earned)} 🪙`;
+  box.style.borderColor = m === 2 ? "#ff6ec7" : r.color;
   box.classList.remove("glow", "pop"); void box.offsetWidth;
   box.classList.add("pop");
-  if (i >= 4) {
-    box.style.boxShadow = `0 0 40px ${r.color}`;
+  if (state.settings.fx && (i >= 4 || m === 2)) {
+    box.style.boxShadow = `0 0 40px ${m === 2 ? "#ff6ec7" : r.color}`;
     box.classList.add("glow");
   } else box.style.boxShadow = "none";
 }
 
 function resetBox() {
   const nm = document.getElementById("resultName");
-  nm.textContent = "Press ROLL"; nm.style.color = "";
+  nm.textContent = "Press ROLL"; nm.style.color = ""; nm.className = "name";
   document.getElementById("resultOdds").textContent = "or hit Space";
   const box = document.getElementById("box");
   box.style.borderColor = "#333"; box.style.boxShadow = "none";
 }
 
 let toastTimer;
-function toast(msg, color) {
+function toast(msg, color, force) {
+  if (!state.settings.popups && !force) return;
   const t = document.getElementById("toast");
   t.textContent = msg; t.style.borderColor = color; t.style.color = color;
   t.classList.add("show");
@@ -405,11 +706,11 @@ function maxAffordable() {
 }
 
 function render() {
-  document.getElementById("coins").textContent = state.coins.toLocaleString();
+  document.getElementById("coins").textContent = fmt(state.coins);
   const lm = potionMult("luck");
   document.getElementById("luck").textContent = totalLuck().toFixed(1) + "x";
   document.getElementById("luck").style.color = lm > 1 ? "#b388ff" : "";
-  document.getElementById("rolls").textContent = state.rolls.toLocaleString();
+  document.getElementById("rolls").textContent = fmt(state.rolls);
   const best = document.getElementById("best");
   if (state.best >= 0) { best.textContent = RARITIES[state.best].name; best.style.color = RARITIES[state.best].color; }
   else { best.textContent = "—"; best.style.color = ""; }
@@ -417,18 +718,18 @@ function render() {
   document.getElementById("rollBtn").disabled = spinning || !!autoTimer;
 
   const lb = document.getElementById("luckBtn");
-  lb.innerHTML = `Luck +${LUCK_STEP}<br><small>${luckCost().toLocaleString()} 🪙</small>`;
+  lb.innerHTML = `Luck +${LUCK_STEP}<br><small>${fmt(luckCost())} 🪙</small>`;
   lb.disabled = state.coins < luckCost();
 
-  const m = maxAffordable();
+  const mx = maxAffordable();
   const maxBtn = document.getElementById("maxBtn");
-  maxBtn.disabled = m.n < 1;
-  maxBtn.innerHTML = `Buy Max (x${m.n})<br><small>${m.total.toLocaleString()} 🪙</small>`;
+  maxBtn.disabled = mx.n < 1;
+  maxBtn.innerHTML = `Buy Max (x${mx.n})<br><small>${fmt(mx.total)} 🪙</small>`;
 
   const speedBtn = document.getElementById("speedBtn");
   if (autoDelay() <= 50) { speedBtn.textContent = "Auto Speed MAXED"; speedBtn.disabled = true; }
   else {
-    speedBtn.innerHTML = `Auto Speed Lv${state.speedLvl + 1}<br><small>${speedCost().toLocaleString()} 🪙</small>`;
+    speedBtn.innerHTML = `Auto Speed Lv${state.speedLvl + 1}<br><small>${fmt(speedCost())} 🪙</small>`;
     speedBtn.disabled = state.coins < speedCost();
   }
 
@@ -438,105 +739,119 @@ function render() {
     const b = document.createElement("button");
     b.className = "potion" + (idx === 2 ? " wide" : "");
     const left = state.potions[p.id] || 0;
-    b.innerHTML = `${p.name}${left ? ` <small>(${left} left)</small>` : ""}<br><small>${p.desc} • ${p.cost.toLocaleString()} 🪙</small>`;
+    b.innerHTML = `${p.name}${left ? ` <small>(${left} left)</small>` : ""}<br><small>${p.desc} • ${fmt(p.cost)} 🪙</small>`;
     b.disabled = state.coins < p.cost;
     b.onclick = () => buyPotion(p);
     shop.appendChild(b);
   });
 
-  const fx = document.getElementById("effects");
-  fx.innerHTML = POTIONS.filter(p => state.potions[p.id] > 0)
+  document.getElementById("effects").innerHTML = POTIONS.filter(p => state.potions[p.id] > 0)
     .map(p => `<span class="chip">🧪 ${p.name} — ${state.potions[p.id]} rolls</span>`).join("");
 
   const log = document.getElementById("log");
   log.innerHTML = state.log.length
-    ? state.log.map(i => `<div style="color:${RARITIES[i].color}">${RARITIES[i].name} <span style="opacity:.5">— 1 in ${RARITIES[i].chance.toLocaleString()}</span></div>`).join("")
+    ? state.log.map(([i, m]) => `<div style="color:${RARITIES[i].color}">${label(i, m)} <span style="opacity:.5">— 1 in ${fmt(RARITIES[i].chance)}</span></div>`).join("")
     : `<div style="opacity:.5">No rolls yet</div>`;
 
   const col = document.getElementById("collection");
   col.innerHTML = "";
-  let foundCount = 0;
+  let shinyKinds = 0, rainKinds = 0;
   RARITIES.forEach(r => {
     const count = state.found[r.name] || 0;
-    if (count) foundCount++;
+    const sh = state.shiny[r.name] || 0, rb = state.rainbow[r.name] || 0;
+    if (sh) shinyKinds++;
+    if (rb) rainKinds++;
     const div = document.createElement("div");
     div.className = "item";
     div.style.borderLeftColor = count ? r.color : "#444";
+    const muts = (sh || rb) ? `<div class="m">${sh ? `✨ x${fmt(sh)} ` : ""}${rb ? `🌈 x${fmt(rb)}` : ""}</div>` : "";
     div.innerHTML = count
-      ? `<div class="n" style="color:${r.color}">${r.name}</div><div class="c">1 in ${r.chance.toLocaleString()} • x${count}</div>`
-      : `<div class="n">???</div><div class="c">1 in ${r.chance.toLocaleString()}</div>`;
+      ? `<div class="n" style="color:${r.color}">${r.name}</div><div class="c">1 in ${fmt(r.chance)} • x${fmt(count)}</div>${muts}`
+      : `<div class="n">???</div><div class="c">1 in ${fmt(r.chance)}</div>`;
     col.appendChild(div);
   });
-  document.getElementById("colCount").textContent = `${foundCount}/${RARITIES.length}`;
+  document.getElementById("colCount").textContent =
+    `${foundKinds()}/${RARITIES.length} • ✨ ${shinyKinds} • 🌈 ${rainKinds}`;
+
+  document.getElementById("achTab").textContent =
+    `🏆 Achievements (${ACH.filter(a => state.ach[a.id]).length}/${ACH.length})`;
+
+  if (tab === "ach") renderAch();
 }
 
 // ---------- Shop ----------
 document.getElementById("luckBtn").onclick = () => {
   const c = luckCost();
   if (state.coins < c) return;
-  state.coins -= c;
+  spend(c);
   state.luckLvl++;
-  save(); render();
+  state.stats.luckBought++;
+  checkAch(); save(); render();
 };
 
 document.getElementById("maxBtn").onclick = () => {
-  const m = maxAffordable();
-  if (m.n < 1) return;
-  state.coins -= m.total;
-  state.luckLvl += m.n;
-  save(); render();
+  const mx = maxAffordable();
+  if (mx.n < 1) return;
+  spend(mx.total);
+  state.luckLvl += mx.n;
+  state.stats.luckBought += mx.n;
+  checkAch(); save(); render();
 };
 
 function buyPotion(p) {
   if (state.coins < p.cost) return;
-  state.coins -= p.cost;
+  spend(p.cost);
   state.potions[p.id] = (state.potions[p.id] || 0) + p.rolls;
+  state.stats.potions++;
   toast(`🧪 ${p.name} active!`, "#b388ff");
-  save(); render();
+  checkAch(); save(); render();
 }
 
 // ---------- Auto + speed ----------
+const autoBtn = document.getElementById("autoBtn");
 function startAuto() {
   clearInterval(autoTimer);
   autoTimer = setInterval(quickRoll, autoDelay());
+  autoBtn.textContent = "AUTO: ON"; autoBtn.classList.add("on");
 }
-const autoBtn = document.getElementById("autoBtn");
+function stopAuto() {
+  clearInterval(autoTimer); autoTimer = null;
+  autoBtn.textContent = "AUTO: OFF"; autoBtn.classList.remove("on");
+}
 autoBtn.onclick = () => {
   if (spinning) return;
-  if (autoTimer) {
-    clearInterval(autoTimer); autoTimer = null;
-    autoBtn.textContent = "AUTO: OFF"; autoBtn.classList.remove("on");
-  } else {
-    startAuto();
-    autoBtn.textContent = "AUTO: ON"; autoBtn.classList.add("on");
-  }
+  autoTimer ? stopAuto() : startAuto();
   render();
 };
 document.getElementById("speedBtn").onclick = () => {
   if (state.coins >= speedCost() && autoDelay() > 50) {
-    state.coins -= speedCost();
+    spend(speedCost());
     state.speedLvl++;
     if (autoTimer) startAuto();
-    save(); render();
+    checkAch(); save(); render();
   }
 };
 
 document.getElementById("rollBtn").onclick = animatedRoll;
 
 document.getElementById("resetBtn").onclick = () => {
-  if (confirm("Reset all progress? Export a save code first if you want a backup.")) {
-    if (autoTimer) autoBtn.click();
+  if (confirm("Reset ALL progress, including achievements and stats? Export a save code first if you want a backup.")) {
+    stopAuto();
+    const keepSettings = state.settings;
     state = fresh();
-    save(); render(); resetBox();
+    state.settings = keepSettings;
+    save(); render(); resetBox(); renderTab();
   }
 };
 
 document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "TEXTAREA") return; // don't roll while typing a code
-  if (e.code === "Space") { e.preventDefault(); if (!e.repeat) animatedRoll(); }
+  if (e.target.tagName === "TEXTAREA") return;
+  if (e.code === "Space" && tab === "game") { e.preventDefault(); if (!e.repeat) animatedRoll(); }
 });
 
 load();
+renderChangelog();
+checkAch(); // award anything older saves already qualify for
 render();
 save();
 </script>

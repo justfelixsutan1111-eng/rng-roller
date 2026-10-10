@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RNG Roller — Update 1.5</title>
+<title>RNG Roller — Update 1.55</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -149,7 +149,7 @@
 <div class="wrap">
   <header>
     <h1>🎲 RNG ROLLER</h1>
-    <div class="ver">UPDATE 1.5</div>
+    <div class="ver">UPDATE 1.55 — CONVENIENCE</div>
   </header>
 
   <nav class="tabs" id="tabs">
@@ -165,7 +165,7 @@
       <div>
         <div class="panel">
           <div class="stats">
-            <div class="stat">Coins<b id="coins">$0</b></div>
+            <div class="stat">Money<b id="coins">$0</b></div>
             <div class="stat">Luck<b id="luck">1.0x</b></div>
             <div class="stat">Rolls<b id="rolls">0</b></div>
             <div class="stat">Best<b id="best">—</b></div>
@@ -270,20 +270,21 @@ const MUTATIONS = [
 
 // ---- Balance settings ----
 const LUCK_BASE_COST = 25;
-const LUCK_COST_GROWTH = 1.06;
+const LUCK_COST_GROWTH = 1.055;  // was 1.06
 const LUCK_STEP = 0.1;
 const AUTO_UNLOCK_COST = 750;
-// Delay between auto rolls (ms) for each speed level. Level 0 = 300ms.
 const SPEEDS = [300, 250, 200, 160, 125, 100, 80, 60, 45, 33, 25, 16, 10];
 const SPEED_BASE_COST = 1500;
 const SPEED_COST_GROWTH = 1.9;
-const DISPLAY_MS = 130;   // in turbo, the box updates at most this often
+const DISPLAY_MS = 130;
+// Pop-ups only show for rolls within this many times of your rarest roll ever
+const NOTIFY_RANGE = 100;
 const SAVE_KEY = "rngRollerSaveV3";
 
 const POTIONS = [
   { id: "lucky", name: "Lucky Potion", desc: "2x luck • 50 rolls",            cost: 400,  rolls: 50,  luck: 2, coins: 1 },
-  { id: "coin",  name: "Coin Potion",  desc: "2x coins • 100 rolls",          cost: 600,  rolls: 100, luck: 1, coins: 2 },
-  { id: "mega",  name: "Mega Potion",  desc: "3x luck + 2x coins • 25 rolls", cost: 5000, rolls: 25,  luck: 3, coins: 2 }
+  { id: "coin",  name: "Money Potion", desc: "2x money • 100 rolls",          cost: 600,  rolls: 100, luck: 1, coins: 2 },
+  { id: "mega",  name: "Mega Potion",  desc: "3x luck + 2x money • 25 rolls", cost: 3000, rolls: 25,  luck: 3, coins: 2 }
 ];
 
 const SETTINGS = [
@@ -294,29 +295,34 @@ const SETTINGS = [
 ];
 
 const CHANGELOG = [
+  { v: "1.55", t: "Convenience", notes: [
+    "Luck upgrades scale up a little slower in the late game",
+    "Recent Rolls is easier to read at high speeds",
+    "Coins are now called Money (Coin Potion is now Money Potion)",
+    "Pop-ups skip rolls that aren't rare for you anymore — first finds always pop up",
+    "Mega Potion now costs $3,000 (was $5,000)" ] },
   { v: "1.5", t: "Turbo", notes: [
-    "Coins now use $",
+    "Money now uses $",
     "18 new achievements (38 total)",
-    "Auto roll must be unlocked for $750 (free if you already bought Auto Speed)",
+    "Auto roll must be unlocked for $750",
     "Auto Speed now has 12 smaller levels, up to 100 rolls/sec",
-    "Turbo display: at high speeds the box shows the rarest roll of each batch",
-    "Coin counter in the corner follows you when you scroll" ] },
+    "Turbo display at high speeds",
+    "Money counter in the corner follows you when you scroll" ] },
   { v: "1.4", t: "Mutations & more", notes: [
-    "Added mutations: ✨ Shiny (1 in 50, 3x coins) and 🌈 Rainbow (1 in 500, 10x coins)",
-    "Added 20 achievements, a Stats page, Settings and this Changelog",
-    "New tab layout; Save and Reset moved to Settings" ] },
+    "Added ✨ Shiny and 🌈 Rainbow mutations",
+    "Added achievements, a Stats page, Settings and this Changelog" ] },
   { v: "1.36", t: "Official website", notes: [ "The game now has its own website on GitHub Pages" ] },
   { v: "1.35", t: "Saving", notes: [ "Auto-save, save status indicator, Export / Load save codes" ] },
   { v: "1.3", t: "Layout & potions", notes: [ "Two-column layout, potions, rolling animation" ] },
   { v: "1.2", t: "Harder", notes: [ "Scaling luck cost, lower rare rewards, pricier Auto Speed" ] },
-  { v: "1.1", t: "Big update", notes: [ "Hold-to-spam, Buy Max, 3 new rarities, roll log, Auto Speed, alerts" ] },
-  { v: "1.0", t: "Release", notes: [ "Rolling, coins, Luck Boost, auto roll and the collection" ] }
+  { v: "1.1", t: "Big update", notes: [ "Buy Max, 3 new rarities, roll log, Auto Speed, alerts" ] },
+  { v: "1.0", t: "Release", notes: [ "Rolling, money, Luck Boost, auto roll and the collection" ] }
 ];
 
 const fresh = () => ({
   v: 15, coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, autoUnlocked: false,
   log: [], potions: {}, shiny: {}, rainbow: {}, ach: {},
-  stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, rarePlus: 0, time: 0, first: Date.now() },
+  stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, rarePlus: 0, time: 0, first: Date.now(), bestVal: 0 },
   settings: { anim: true, popups: true, fx: true, compact: false }
 });
 let state = fresh();
@@ -388,22 +394,31 @@ function sanitize(s) {
   if (!hadStats) { out.stats.luckBought = out.luckLvl; out.stats.peak = out.coins; }
   out.settings = Object.assign(fresh().settings, s.settings && typeof s.settings === "object" ? s.settings : {});
 
-  // Pre-1.5 saves: convert old speed levels (300 - 50*lvl ms) to the new table
   if (!s.v || s.v < 15) {
     const oldLvl = out.speedLvl;
     const oldDelay = Math.max(50, 300 - 50 * oldLvl);
     out.speedLvl = SPEEDS.findIndex(d => d <= oldDelay);
-    out.autoUnlocked = oldLvl > 0; // bought speed before = keep auto free
+    out.autoUnlocked = oldLvl > 0;
     out.v = 15;
   }
   out.speedLvl = Math.min(out.speedLvl, maxSpeedLvl);
   out.autoUnlocked = !!out.autoUnlocked;
+  out.best = Math.min(Math.max(-1, out.best | 0), RARITIES.length - 1);
+
+  // Rarest roll ever (rarity odds x mutation odds), rebuilt for older saves
+  if (!out.stats.bestVal) {
+    let bv = out.best >= 0 ? RARITIES[out.best].chance : 0;
+    RARITIES.forEach(r => {
+      if (out.shiny[r.name]) bv = Math.max(bv, r.chance * MUTATIONS[1].chance);
+      if (out.rainbow[r.name]) bv = Math.max(bv, r.chance * MUTATIONS[2].chance);
+    });
+    out.stats.bestVal = bv;
+  }
 
   out.log = (Array.isArray(out.log) ? out.log : [])
     .map(e => Array.isArray(e) ? e : [e, 0])
     .filter(e => Number.isInteger(e[0]) && e[0] >= 0 && e[0] < RARITIES.length && [0, 1, 2].includes(e[1]))
     .slice(0, 8);
-  out.best = Math.min(Math.max(-1, out.best | 0), RARITIES.length - 1);
   return out;
 }
 
@@ -465,13 +480,11 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) save(
 // ---------- Achievements ----------
 const has = i => [state.best >= i ? 1 : 0, 1];
 const ACH = [
-  // Rolling
   { id: "r100",    name: "Getting Started",   desc: "Roll 100 times",                    reward: 200,      p: () => [state.rolls, 100] },
   { id: "r1k",     name: "Dedicated",         desc: "Roll 1,000 times",                  reward: 1500,     p: () => [state.rolls, 1000] },
   { id: "r10k",    name: "No Life",           desc: "Roll 10,000 times",                 reward: 15000,    p: () => [state.rolls, 10000] },
   { id: "r100k",   name: "Touch Grass",       desc: "Roll 100,000 times",                reward: 150000,   p: () => [state.rolls, 100000] },
   { id: "r1m",     name: "Is This a Job?",    desc: "Roll 1,000,000 times",              reward: 1500000,  p: () => [state.rolls, 1000000] },
-  // Rarities
   { id: "leg",     name: "Legendary!",        desc: "Find Legendary",                    reward: 500,      p: () => has(4) },
   { id: "myth",    name: "Mythical",          desc: "Find Mythic",                       reward: 3000,     p: () => has(5) },
   { id: "cel",     name: "Starstruck",        desc: "Find Celestial",                    reward: 20000,    p: () => has(6) },
@@ -480,11 +493,9 @@ const ACH = [
   { id: "eth",     name: "Beyond the Veil",   desc: "Find Ethereal",                     reward: 2000000,  p: () => has(9) },
   { id: "secret",  name: "???",               desc: "Find ??? SECRET",                   reward: 5000000,  p: () => has(10) },
   { id: "leg100",  name: "Legend Farmer",     desc: "Roll Legendary or better 100 times", reward: 20000,   p: () => [state.stats.rarePlus, 100] },
-  // Collection
   { id: "half",    name: "Collector",         desc: "Find 6 different rarities",         reward: 5000,     p: () => [foundKinds(), 6] },
   { id: "hoard",   name: "Hoarder",           desc: "Find 9 different rarities",         reward: 500000,   p: () => [foundKinds(), 9] },
   { id: "all",     name: "Complete Set",      desc: "Find every rarity",                 reward: 10000000, p: () => [foundKinds(), RARITIES.length] },
-  // Mutations
   { id: "shiny1",  name: "Sparkly",           desc: "Get your first Shiny",              reward: 300,      p: () => [state.stats.shinies, 1] },
   { id: "shiny50", name: "Shiny Hunter",      desc: "Get 50 Shinies",                    reward: 5000,     p: () => [state.stats.shinies, 50] },
   { id: "shiny500",name: "Shiny Addict",      desc: "Get 500 Shinies",                   reward: 50000,    p: () => [state.stats.shinies, 500] },
@@ -492,7 +503,6 @@ const ACH = [
   { id: "rain1",   name: "Taste the Rainbow", desc: "Get your first Rainbow",            reward: 3000,     p: () => [state.stats.rainbows, 1] },
   { id: "rain25",  name: "Double Rainbow",    desc: "Get 25 Rainbows",                   reward: 40000,    p: () => [state.stats.rainbows, 25] },
   { id: "rainLeg", name: "Double Rare",       desc: "Get a Rainbow Legendary or better", reward: 50000,    p: () => [RARITIES.slice(4).some(r => state.rainbow[r.name]) ? 1 : 0, 1] },
-  // Upgrades
   { id: "luck5",   name: "Feeling Lucky",     desc: "Reach 5.0x base luck",              reward: 2000,     p: () => [state.luckLvl, 40] },
   { id: "luck10",  name: "Lucky Charm",       desc: "Reach 10.0x base luck",             reward: 25000,    p: () => [state.luckLvl, 90] },
   { id: "luck15",  name: "Four-Leaf Clover",  desc: "Reach 15.0x base luck",             reward: 200000,   p: () => [state.luckLvl, 140] },
@@ -501,12 +511,10 @@ const ACH = [
   { id: "speed",   name: "Speed Demon",       desc: "Max out Auto Speed",                reward: 250000,   p: () => [state.speedLvl, maxSpeedLvl] },
   { id: "pot10",   name: "Alchemist",         desc: "Drink 10 potions",                  reward: 2000,     p: () => [state.stats.potions, 10] },
   { id: "pot50",   name: "Potion Master",     desc: "Drink 50 potions",                  reward: 15000,    p: () => [state.stats.potions, 50] },
-  // Money
   { id: "rich",    name: "Rich",              desc: "Have $100,000 at once",             reward: 10000,    p: () => [state.stats.peak, 100000] },
   { id: "rich1m",  name: "Millionaire",       desc: "Have $1,000,000 at once",           reward: 100000,   p: () => [state.stats.peak, 1000000] },
   { id: "spend1m", name: "Big Spender",       desc: "Spend $1,000,000 total",            reward: 50000,    p: () => [state.stats.spent, 1000000] },
   { id: "earn10m", name: "Tycoon",            desc: "Earn $10,000,000 total",            reward: 500000,   p: () => [state.stats.earned, 10000000] },
-  // Time
   { id: "hour",    name: "Committed",         desc: "Play for 1 hour",                   reward: 5000,     p: () => [state.stats.time, 3600] },
   { id: "hour10",  name: "Lifer",             desc: "Play for 10 hours",                 reward: 50000,    p: () => [state.stats.time, 36000] },
   { id: "ach20",   name: "Overachiever",      desc: "Unlock 20 other achievements",      reward: 100000,   p: () => [Object.keys(state.ach).filter(k => k !== "ach20" && state.ach[k]).length, 20] }
@@ -549,10 +557,10 @@ function renderStats() {
   const s = state.stats;
   const items = [
     ["Total Rolls", fmt(state.rolls)],
-    ["Coins Now", money(state.coins)],
-    ["Coins Earned", money(s.earned)],
-    ["Coins Spent", money(s.spent)],
-    ["Most Coins Held", money(s.peak)],
+    ["Money Now", money(state.coins)],
+    ["Money Earned", money(s.earned)],
+    ["Money Spent", money(s.spent)],
+    ["Most Money Held", money(s.peak)],
     ["Base Luck", (1 + state.luckLvl * LUCK_STEP).toFixed(1) + "x"],
     ["Luck Boosts Bought", fmt(s.luckBought)],
     ["Auto Roll", state.autoUnlocked ? `Lv${state.speedLvl} • ${rps()}/sec` : "Locked"],
@@ -644,10 +652,20 @@ function rollMutation() {
   return 0;
 }
 
-// Updates the game state for one roll; returns coins earned
-function processRoll(i, m) {
+function pushLog(i, m) {
+  state.log.unshift([i, m]);
+  if (state.log.length > 8) state.log.length = 8;
+}
+
+// Updates the game state for one roll; returns money earned
+function processRoll(i, m, addToLog) {
   const r = RARITIES[i];
   const earned = r.coins * MUTATIONS[m].mult * potionMult("coins");
+  const val = r.chance * MUTATIONS[m].chance;
+  const firstTime = m === 0 ? !state.found[r.name] : m === 1 ? !state.shiny[r.name] : !state.rainbow[r.name];
+  const rareEnough = i >= 5 || m === 2 || (m === 1 && i >= 4);
+  const stillSpecial = firstTime || val * NOTIFY_RANGE > state.stats.bestVal;
+
   state.rolls++;
   earn(earned);
   state.found[r.name] = (state.found[r.name] || 0) + 1;
@@ -655,18 +673,18 @@ function processRoll(i, m) {
   if (m === 2) { state.rainbow[r.name] = (state.rainbow[r.name] || 0) + 1; state.stats.rainbows++; }
   if (i >= 4) state.stats.rarePlus++;
   if (i > state.best) state.best = i;
-  state.log.unshift([i, m]);
-  if (state.log.length > 8) state.log.length = 8;
+  if (val > state.stats.bestVal) state.stats.bestVal = val;
+  if (addToLog) pushLog(i, m);
   POTIONS.forEach(p => { if (state.potions[p.id] > 0) state.potions[p.id]--; });
-  if (i >= 5 || m === 2 || (m === 1 && i >= 4)) {
-    toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(r.chance * MUTATIONS[m].chance)})`, m === 2 ? "#ff6ec7" : r.color);
+
+  if (rareEnough && stillSpecial) {
+    toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(val)})`, m === 2 ? "#ff6ec7" : r.color);
   }
   return earned;
 }
 
-// Single roll with full display (manual + slow auto)
 function applyRoll(i, m) {
-  const earned = processRoll(i, m);
+  const earned = processRoll(i, m, true);
   showResult(i, m, earned, true);
   checkAch();
   save();
@@ -754,7 +772,6 @@ function maxAffordable() {
   return { n, total };
 }
 
-// Throttled render so fast auto doesn't lag the page
 let renderQueued = false, lastRender = 0;
 function requestRender() {
   if (renderQueued) return;
@@ -784,7 +801,6 @@ function render() {
 
   document.getElementById("rollBtn").disabled = spinning || !!autoTimer;
 
-  // Auto button
   const ab = document.getElementById("autoBtn");
   if (!state.autoUnlocked) {
     ab.className = "locked";
@@ -829,7 +845,7 @@ function render() {
 
   let fx = POTIONS.filter(p => state.potions[p.id] > 0)
     .map(p => `<span class="chip">🧪 ${p.name} — ${state.potions[p.id]} rolls</span>`).join("");
-  if (isTurbo()) fx = `<span class="chip turbo">⚡ TURBO • ${rps()} rolls/sec • showing best of each batch</span>` + fx;
+  if (isTurbo()) fx = `<span class="chip turbo">⚡ TURBO • ${rps()} rolls/sec</span>` + fx;
   document.getElementById("effects").innerHTML = fx;
 
   const log = document.getElementById("log");
@@ -891,10 +907,15 @@ function buyPotion(p) {
 }
 
 // ---------- Auto roll ----------
-// Runs on a steady 50ms tick and does as many rolls as the speed level allows.
-// In turbo, the box only updates every DISPLAY_MS and shows the rarest roll since last update.
 let autoAcc = 0, lastTick = 0, lastShow = 0, pending = null;
 const score = (i, m) => i * 3 + m;
+
+function flushPending() {
+  if (!pending) return;
+  showResult(pending.i, pending.m, pending.earned, false);
+  pushLog(pending.i, pending.m);
+  pending = null;
+}
 
 function autoTick() {
   const now = performance.now();
@@ -902,23 +923,22 @@ function autoTick() {
   lastTick = now;
   let n = Math.floor(autoAcc);
   autoAcc -= n;
-  if (n > 200) n = 200; // safety cap if the tab was asleep
+  if (n > 200) n = 200;
   if (n < 1) return;
 
   if (!isTurbo() && n === 1) { quickRoll(); return; }
 
   for (let k = 0; k < n; k++) {
     const i = roll(), m = rollMutation();
-    const earned = processRoll(i, m);
+    const earned = processRoll(i, m, false);
     if (!pending || score(i, m) > score(pending.i, pending.m)) pending = { i, m, earned };
   }
   if (now - lastShow >= DISPLAY_MS && pending) {
-    showResult(pending.i, pending.m, pending.earned, false);
-    pending = null;
+    flushPending();
     lastShow = now;
   }
   checkAch();
-  requestRender(); // saving happens on the 5s timer
+  requestRender();
 }
 
 function startAuto() {
@@ -929,7 +949,7 @@ function startAuto() {
 function stopAuto() {
   if (!autoTimer) return;
   clearInterval(autoTimer); autoTimer = null;
-  if (pending) { showResult(pending.i, pending.m, pending.earned, false); pending = null; }
+  flushPending();
   save();
 }
 

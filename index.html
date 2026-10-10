@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RNG Roller — Update 1.4</title>
+<title>RNG Roller — Update 1.5</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -16,6 +16,14 @@
   header { text-align: center; margin-bottom: 14px; }
   h1 { letter-spacing: 4px; }
   .ver { opacity: .5; font-size: .8em; letter-spacing: 2px; margin-top: 2px; }
+
+  .coinFloat {
+    position: fixed; top: 12px; right: 12px; z-index: 20;
+    background: #0d1022ee; border: 2px solid #1fa65a; color: #6fe3a0;
+    padding: 8px 14px; border-radius: 99px; font-weight: 800; font-size: 1.05em;
+    box-shadow: 0 4px 16px #0008; transition: transform .15s;
+  }
+  .coinFloat.bump { transform: scale(1.08); }
 
   .tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
   .tabs button { padding: 10px 16px; background: #161a2e; border: 1px solid #252a4a; }
@@ -57,13 +65,14 @@
   .shiny { text-shadow: 0 0 12px #fff8, 0 0 24px #ffd70088; }
   .rainbow {
     background: linear-gradient(90deg, #ff5252, #ffb142, #fff156, #4cff8a, #48dbfb, #a55eea, #ff5252);
-    background-size: 300% 100%; -webkit-background-clip: background-clip: text; background-clip: text;
+    background-size: 300% 100%; -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent; animation: rainbow 2s linear infinite;
   }
   @keyframes rainbow { to { background-position: 300% 0; } }
 
   .effects { display: flex; gap: 6px; flex-wrap: wrap; min-height: 26px; margin-bottom: 12px; justify-content: center; }
   .chip { font-size: .8em; padding: 4px 10px; border-radius: 99px; background: #2a1f4a; border: 1px solid #6c3cff; }
+  .chip.turbo { background: #3a2a05; border-color: #ffb142; color: #ffd27a; }
 
   .main-btns { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
   button {
@@ -78,6 +87,7 @@
   #rollBtn { background: #6c3cff; font-size: 1.3em; padding: 18px; }
   #rollBtn:hover:not(:disabled) { background: #8255ff; }
   #autoBtn.on { background: #1fa65a; }
+  #autoBtn.locked { background: #3a2a05; }
 
   .shop { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .shop .wide { grid-column: span 2; }
@@ -109,7 +119,6 @@
   .row small { display: block; opacity: .6; font-size: .8em; margin-top: 2px; }
   .tog { min-width: 70px; padding: 8px 12px; background: #4a1a1a; }
   .tog.on { background: #1fa65a; }
-  .tog:hover:not(:disabled) { filter: brightness(1.15); }
 
   .saveStatus { font-size: .85em; padding: 8px 10px; border-radius: 8px; margin-bottom: 10px; background: #12301f; color: #6fe3a0; }
   .saveStatus.bad { background: #3a2410; color: #ffb86b; }
@@ -129,17 +138,18 @@
   .toast {
     position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-160px);
     background: #000d; padding: 14px 24px; border-radius: 12px; font-weight: 800; font-size: 1.1em;
-    border: 2px solid #fff; transition: transform .3s; z-index: 10; text-align: center; max-width: 90vw;
+    border: 2px solid #fff; transition: transform .3s; z-index: 30; text-align: center; max-width: 80vw;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
+<div class="coinFloat" id="coinFloat">$0</div>
 <div class="wrap">
   <header>
     <h1>🎲 RNG ROLLER</h1>
-    <div class="ver">UPDATE 1.4</div>
+    <div class="ver">UPDATE 1.5</div>
   </header>
 
   <nav class="tabs" id="tabs">
@@ -150,13 +160,12 @@
     <button data-tab="changelog">📜 Changelog</button>
   </nav>
 
-  <!-- GAME -->
   <section class="page active" id="page-game">
     <div class="grid">
       <div>
         <div class="panel">
           <div class="stats">
-            <div class="stat">Coins<b id="coins">0</b></div>
+            <div class="stat">Coins<b id="coins">$0</b></div>
             <div class="stat">Luck<b id="luck">1.0x</b></div>
             <div class="stat">Rolls<b id="rolls">0</b></div>
             <div class="stat">Best<b id="best">—</b></div>
@@ -168,7 +177,7 @@
           <div class="effects" id="effects"></div>
           <div class="main-btns">
             <button id="rollBtn">ROLL</button>
-            <button id="autoBtn">AUTO: OFF</button>
+            <button id="autoBtn">AUTO</button>
           </div>
         </div>
         <div class="panel">
@@ -197,7 +206,6 @@
     </div>
   </section>
 
-  <!-- ACHIEVEMENTS -->
   <section class="page" id="page-ach">
     <div class="panel">
       <h2><span>🏆 ACHIEVEMENTS</span><span id="achCount"></span></h2>
@@ -205,7 +213,6 @@
     </div>
   </section>
 
-  <!-- STATS -->
   <section class="page" id="page-stats">
     <div class="panel">
       <h2>📊 STATS</h2>
@@ -213,7 +220,6 @@
     </div>
   </section>
 
-  <!-- SETTINGS -->
   <section class="page" id="page-settings">
     <div class="grid">
       <div class="panel">
@@ -236,7 +242,6 @@
     </div>
   </section>
 
-  <!-- CHANGELOG -->
   <section class="page" id="page-changelog">
     <div class="panel cl" id="changelog"></div>
   </section>
@@ -257,7 +262,6 @@ const RARITIES = [
   { name: "??? SECRET", chance: 100000000, color: "#ffffff", coins: 3000000 }
 ];
 
-// Mutations: index 0 = normal
 const MUTATIONS = [
   { name: "",        icon: "",   chance: 1,   mult: 1 },
   { name: "Shiny",   icon: "✨", chance: 50,  mult: 3 },
@@ -268,9 +272,13 @@ const MUTATIONS = [
 const LUCK_BASE_COST = 25;
 const LUCK_COST_GROWTH = 1.06;
 const LUCK_STEP = 0.1;
+const AUTO_UNLOCK_COST = 750;
+// Delay between auto rolls (ms) for each speed level. Level 0 = 300ms.
+const SPEEDS = [300, 250, 200, 160, 125, 100, 80, 60, 45, 33, 25, 16, 10];
 const SPEED_BASE_COST = 1500;
-const SPEED_COST_GROWTH = 2.5;
-const SAVE_KEY = "rngRollerSaveV3"; // same slot since 1.2
+const SPEED_COST_GROWTH = 1.9;
+const DISPLAY_MS = 130;   // in turbo, the box updates at most this often
+const SAVE_KEY = "rngRollerSaveV3";
 
 const POTIONS = [
   { id: "lucky", name: "Lucky Potion", desc: "2x luck • 50 rolls",            cost: 400,  rolls: 50,  luck: 2, coins: 1 },
@@ -282,41 +290,32 @@ const SETTINGS = [
   { k: "anim",    name: "Roll animation", desc: "Spin before showing manual rolls" },
   { k: "popups",  name: "Pop-ups",        desc: "Alerts for rare rolls, mutations and achievements" },
   { k: "fx",      name: "Glow & shake",   desc: "Box effects on Legendary+ and Rainbow rolls" },
-  { k: "compact", name: "Short numbers",  desc: "Show 1.2M instead of 1,200,000" }
+  { k: "compact", name: "Short numbers",  desc: "Show $1.2M instead of $1,200,000" }
 ];
 
 const CHANGELOG = [
+  { v: "1.5", t: "Turbo", notes: [
+    "Coins now use $",
+    "18 new achievements (38 total)",
+    "Auto roll must be unlocked for $750 (free if you already bought Auto Speed)",
+    "Auto Speed now has 12 smaller levels, up to 100 rolls/sec",
+    "Turbo display: at high speeds the box shows the rarest roll of each batch",
+    "Coin counter in the corner follows you when you scroll" ] },
   { v: "1.4", t: "Mutations & more", notes: [
     "Added mutations: ✨ Shiny (1 in 50, 3x coins) and 🌈 Rainbow (1 in 500, 10x coins)",
-    "Added 20 achievements with coin rewards",
-    "Added a Stats page",
-    "Added Settings: roll animation, pop-ups, glow & shake, short numbers",
-    "Added this Changelog",
+    "Added 20 achievements, a Stats page, Settings and this Changelog",
     "New tab layout; Save and Reset moved to Settings" ] },
   { v: "1.36", t: "Official website", notes: [ "The game now has its own website on GitHub Pages" ] },
-  { v: "1.35", t: "Saving", notes: [
-    "Auto-save every roll, every 5 seconds and when you leave",
-    "Save status indicator",
-    "Export / Load save codes" ] },
-  { v: "1.3", t: "Layout & potions", notes: [
-    "New two-column layout",
-    "Added Lucky, Coin and Mega potions",
-    "Rolling animation for manual rolls",
-    "Removed hold-to-spam (Buy Max does the job)" ] },
-  { v: "1.2", t: "Harder", notes: [
-    "Luck cost now scales up with every boost",
-    "Lower coin rewards for rare rolls",
-    "Auto Speed costs more" ] },
-  { v: "1.1", t: "Big update", notes: [
-    "Hold-to-spam Luck Boost and Buy Max",
-    "New rarities: Divine, Ethereal, ??? SECRET",
-    "Best Roll stat, roll log, Auto Speed upgrade, rare roll alerts" ] },
+  { v: "1.35", t: "Saving", notes: [ "Auto-save, save status indicator, Export / Load save codes" ] },
+  { v: "1.3", t: "Layout & potions", notes: [ "Two-column layout, potions, rolling animation" ] },
+  { v: "1.2", t: "Harder", notes: [ "Scaling luck cost, lower rare rewards, pricier Auto Speed" ] },
+  { v: "1.1", t: "Big update", notes: [ "Hold-to-spam, Buy Max, 3 new rarities, roll log, Auto Speed, alerts" ] },
   { v: "1.0", t: "Release", notes: [ "Rolling, coins, Luck Boost, auto roll and the collection" ] }
 ];
 
 const fresh = () => ({
-  coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, log: [], potions: {},
-  shiny: {}, rainbow: {}, ach: {},
+  v: 15, coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, autoUnlocked: false,
+  log: [], potions: {}, shiny: {}, rainbow: {}, ach: {},
   stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, rarePlus: 0, time: 0, first: Date.now() },
   settings: { anim: true, popups: true, fx: true, compact: false }
 });
@@ -336,12 +335,15 @@ function fmt(n) {
   }
   return n.toLocaleString();
 }
+const money = n => "$" + fmt(n);
 function fmtTime(s) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
 }
 const foundKinds = () => RARITIES.filter(r => state.found[r.name]).length;
+const shinyKinds = () => RARITIES.filter(r => state.shiny[r.name]).length;
 const label = (i, m) => (m ? MUTATIONS[m].icon + " " + MUTATIONS[m].name + " " : "") + RARITIES[i].name;
+const maxSpeedLvl = SPEEDS.length - 1;
 
 function earn(n) {
   state.coins += n;
@@ -383,10 +385,22 @@ function sanitize(s) {
   ["coins", "luckLvl", "rolls", "speedLvl"].forEach(k => { out[k] = Math.max(0, Number(out[k]) || 0); });
   const hadStats = s.stats && typeof s.stats === "object";
   out.stats = Object.assign(fresh().stats, hadStats ? s.stats : {});
-  if (!hadStats) { out.stats.luckBought = out.luckLvl; out.stats.peak = out.coins; } // older saves
+  if (!hadStats) { out.stats.luckBought = out.luckLvl; out.stats.peak = out.coins; }
   out.settings = Object.assign(fresh().settings, s.settings && typeof s.settings === "object" ? s.settings : {});
+
+  // Pre-1.5 saves: convert old speed levels (300 - 50*lvl ms) to the new table
+  if (!s.v || s.v < 15) {
+    const oldLvl = out.speedLvl;
+    const oldDelay = Math.max(50, 300 - 50 * oldLvl);
+    out.speedLvl = SPEEDS.findIndex(d => d <= oldDelay);
+    out.autoUnlocked = oldLvl > 0; // bought speed before = keep auto free
+    out.v = 15;
+  }
+  out.speedLvl = Math.min(out.speedLvl, maxSpeedLvl);
+  out.autoUnlocked = !!out.autoUnlocked;
+
   out.log = (Array.isArray(out.log) ? out.log : [])
-    .map(e => Array.isArray(e) ? e : [e, 0]) // old logs were plain numbers
+    .map(e => Array.isArray(e) ? e : [e, 0])
     .filter(e => Number.isInteger(e[0]) && e[0] >= 0 && e[0] < RARITIES.length && [0, 1, 2].includes(e[1]))
     .slice(0, 8);
   out.best = Math.min(Math.max(-1, out.best | 0), RARITIES.length - 1);
@@ -449,27 +463,53 @@ window.addEventListener("beforeunload", save);
 document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
 
 // ---------- Achievements ----------
+const has = i => [state.best >= i ? 1 : 0, 1];
 const ACH = [
-  { id: "r100",    name: "Getting Started",  desc: "Roll 100 times",                   reward: 200,      p: () => [state.rolls, 100] },
-  { id: "r1k",     name: "Dedicated",        desc: "Roll 1,000 times",                 reward: 1500,     p: () => [state.rolls, 1000] },
-  { id: "r10k",    name: "No Life",          desc: "Roll 10,000 times",                reward: 15000,    p: () => [state.rolls, 10000] },
-  { id: "r100k",   name: "Touch Grass",      desc: "Roll 100,000 times",               reward: 150000,   p: () => [state.rolls, 100000] },
-  { id: "leg",     name: "Legendary!",       desc: "Find Legendary",                   reward: 500,      p: () => [state.best >= 4 ? 1 : 0, 1] },
-  { id: "myth",    name: "Mythical",         desc: "Find Mythic",                      reward: 3000,     p: () => [state.best >= 5 ? 1 : 0, 1] },
-  { id: "cel",     name: "Starstruck",       desc: "Find Celestial",                   reward: 20000,    p: () => [state.best >= 6 ? 1 : 0, 1] },
-  { id: "god",     name: "Ascended",         desc: "Find GODLY",                       reward: 100000,   p: () => [state.best >= 7 ? 1 : 0, 1] },
-  { id: "secret",  name: "???",              desc: "Find ??? SECRET",                  reward: 5000000,  p: () => [state.best >= 10 ? 1 : 0, 1] },
-  { id: "shiny1",  name: "Sparkly",          desc: "Get your first Shiny",             reward: 300,      p: () => [state.stats.shinies, 1] },
-  { id: "shiny50", name: "Shiny Hunter",     desc: "Get 50 Shinies",                   reward: 5000,     p: () => [state.stats.shinies, 50] },
-  { id: "rain1",   name: "Taste the Rainbow",desc: "Get your first Rainbow",           reward: 3000,     p: () => [state.stats.rainbows, 1] },
-  { id: "rainLeg", name: "Double Rare",      desc: "Get a Rainbow Legendary or better", reward: 50000,   p: () => [RARITIES.slice(4).some(r => state.rainbow[r.name]) ? 1 : 0, 1] },
-  { id: "luck5",   name: "Feeling Lucky",    desc: "Reach 5.0x base luck",             reward: 2000,     p: () => [state.luckLvl, 40] },
-  { id: "luck10",  name: "Lucky Charm",      desc: "Reach 10.0x base luck",            reward: 25000,    p: () => [state.luckLvl, 90] },
-  { id: "speed",   name: "Speed Demon",      desc: "Max out Auto Speed",               reward: 20000,    p: () => [state.speedLvl, 5] },
-  { id: "pot10",   name: "Alchemist",        desc: "Drink 10 potions",                 reward: 2000,     p: () => [state.stats.potions, 10] },
-  { id: "rich",    name: "Rich",             desc: "Have 100,000 coins at once",       reward: 10000,    p: () => [state.stats.peak, 100000] },
-  { id: "half",    name: "Collector",        desc: "Find 6 different rarities",        reward: 5000,     p: () => [foundKinds(), 6] },
-  { id: "hour",    name: "Committed",        desc: "Play for 1 hour",                  reward: 5000,     p: () => [state.stats.time, 3600] }
+  // Rolling
+  { id: "r100",    name: "Getting Started",   desc: "Roll 100 times",                    reward: 200,      p: () => [state.rolls, 100] },
+  { id: "r1k",     name: "Dedicated",         desc: "Roll 1,000 times",                  reward: 1500,     p: () => [state.rolls, 1000] },
+  { id: "r10k",    name: "No Life",           desc: "Roll 10,000 times",                 reward: 15000,    p: () => [state.rolls, 10000] },
+  { id: "r100k",   name: "Touch Grass",       desc: "Roll 100,000 times",                reward: 150000,   p: () => [state.rolls, 100000] },
+  { id: "r1m",     name: "Is This a Job?",    desc: "Roll 1,000,000 times",              reward: 1500000,  p: () => [state.rolls, 1000000] },
+  // Rarities
+  { id: "leg",     name: "Legendary!",        desc: "Find Legendary",                    reward: 500,      p: () => has(4) },
+  { id: "myth",    name: "Mythical",          desc: "Find Mythic",                       reward: 3000,     p: () => has(5) },
+  { id: "cel",     name: "Starstruck",        desc: "Find Celestial",                    reward: 20000,    p: () => has(6) },
+  { id: "god",     name: "Ascended",          desc: "Find GODLY",                        reward: 100000,   p: () => has(7) },
+  { id: "div",     name: "Divine Intervention", desc: "Find Divine",                     reward: 400000,   p: () => has(8) },
+  { id: "eth",     name: "Beyond the Veil",   desc: "Find Ethereal",                     reward: 2000000,  p: () => has(9) },
+  { id: "secret",  name: "???",               desc: "Find ??? SECRET",                   reward: 5000000,  p: () => has(10) },
+  { id: "leg100",  name: "Legend Farmer",     desc: "Roll Legendary or better 100 times", reward: 20000,   p: () => [state.stats.rarePlus, 100] },
+  // Collection
+  { id: "half",    name: "Collector",         desc: "Find 6 different rarities",         reward: 5000,     p: () => [foundKinds(), 6] },
+  { id: "hoard",   name: "Hoarder",           desc: "Find 9 different rarities",         reward: 500000,   p: () => [foundKinds(), 9] },
+  { id: "all",     name: "Complete Set",      desc: "Find every rarity",                 reward: 10000000, p: () => [foundKinds(), RARITIES.length] },
+  // Mutations
+  { id: "shiny1",  name: "Sparkly",           desc: "Get your first Shiny",              reward: 300,      p: () => [state.stats.shinies, 1] },
+  { id: "shiny50", name: "Shiny Hunter",      desc: "Get 50 Shinies",                    reward: 5000,     p: () => [state.stats.shinies, 50] },
+  { id: "shiny500",name: "Shiny Addict",      desc: "Get 500 Shinies",                   reward: 50000,    p: () => [state.stats.shinies, 500] },
+  { id: "shinyAll",name: "Full Sparkle",      desc: "Get Shinies of 5 different rarities", reward: 10000,  p: () => [shinyKinds(), 5] },
+  { id: "rain1",   name: "Taste the Rainbow", desc: "Get your first Rainbow",            reward: 3000,     p: () => [state.stats.rainbows, 1] },
+  { id: "rain25",  name: "Double Rainbow",    desc: "Get 25 Rainbows",                   reward: 40000,    p: () => [state.stats.rainbows, 25] },
+  { id: "rainLeg", name: "Double Rare",       desc: "Get a Rainbow Legendary or better", reward: 50000,    p: () => [RARITIES.slice(4).some(r => state.rainbow[r.name]) ? 1 : 0, 1] },
+  // Upgrades
+  { id: "luck5",   name: "Feeling Lucky",     desc: "Reach 5.0x base luck",              reward: 2000,     p: () => [state.luckLvl, 40] },
+  { id: "luck10",  name: "Lucky Charm",       desc: "Reach 10.0x base luck",             reward: 25000,    p: () => [state.luckLvl, 90] },
+  { id: "luck15",  name: "Four-Leaf Clover",  desc: "Reach 15.0x base luck",             reward: 200000,   p: () => [state.luckLvl, 140] },
+  { id: "auto",    name: "Hands Free",        desc: "Unlock Auto roll",                  reward: 300,      p: () => [state.autoUnlocked ? 1 : 0, 1] },
+  { id: "speed5",  name: "Picking Up Speed",  desc: "Reach Auto Speed Lv5",              reward: 5000,     p: () => [state.speedLvl, 5] },
+  { id: "speed",   name: "Speed Demon",       desc: "Max out Auto Speed",                reward: 250000,   p: () => [state.speedLvl, maxSpeedLvl] },
+  { id: "pot10",   name: "Alchemist",         desc: "Drink 10 potions",                  reward: 2000,     p: () => [state.stats.potions, 10] },
+  { id: "pot50",   name: "Potion Master",     desc: "Drink 50 potions",                  reward: 15000,    p: () => [state.stats.potions, 50] },
+  // Money
+  { id: "rich",    name: "Rich",              desc: "Have $100,000 at once",             reward: 10000,    p: () => [state.stats.peak, 100000] },
+  { id: "rich1m",  name: "Millionaire",       desc: "Have $1,000,000 at once",           reward: 100000,   p: () => [state.stats.peak, 1000000] },
+  { id: "spend1m", name: "Big Spender",       desc: "Spend $1,000,000 total",            reward: 50000,    p: () => [state.stats.spent, 1000000] },
+  { id: "earn10m", name: "Tycoon",            desc: "Earn $10,000,000 total",            reward: 500000,   p: () => [state.stats.earned, 10000000] },
+  // Time
+  { id: "hour",    name: "Committed",         desc: "Play for 1 hour",                   reward: 5000,     p: () => [state.stats.time, 3600] },
+  { id: "hour10",  name: "Lifer",             desc: "Play for 10 hours",                 reward: 50000,    p: () => [state.stats.time, 36000] },
+  { id: "ach20",   name: "Overachiever",      desc: "Unlock 20 other achievements",      reward: 100000,   p: () => [Object.keys(state.ach).filter(k => k !== "ach20" && state.ach[k]).length, 20] }
 ];
 
 function checkAch() {
@@ -481,7 +521,7 @@ function checkAch() {
       state.ach[a.id] = true;
       earn(a.reward);
       any = true;
-      toast(`🏆 ${a.name}! +${fmt(a.reward)} 🪙`, "#ffd700");
+      toast(`🏆 ${a.name}! +${money(a.reward)}`, "#ffd700");
     }
   });
   return any;
@@ -499,7 +539,7 @@ function renderAch() {
       <div class="t">${got ? "✅" : "🔒"} ${a.name}</div>
       <div class="d">${a.desc}</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="r">Reward: ${fmt(a.reward)} 🪙${prog}</div>
+      <div class="r">Reward: ${money(a.reward)}${prog}</div>
     </div>`;
   }).join("");
 }
@@ -509,12 +549,13 @@ function renderStats() {
   const s = state.stats;
   const items = [
     ["Total Rolls", fmt(state.rolls)],
-    ["Coins Now", fmt(state.coins)],
-    ["Coins Earned", fmt(s.earned)],
-    ["Coins Spent", fmt(s.spent)],
-    ["Most Coins Held", fmt(s.peak)],
+    ["Coins Now", money(state.coins)],
+    ["Coins Earned", money(s.earned)],
+    ["Coins Spent", money(s.spent)],
+    ["Most Coins Held", money(s.peak)],
     ["Base Luck", (1 + state.luckLvl * LUCK_STEP).toFixed(1) + "x"],
     ["Luck Boosts Bought", fmt(s.luckBought)],
+    ["Auto Roll", state.autoUnlocked ? `Lv${state.speedLvl} • ${rps()}/sec` : "Locked"],
     ["Potions Drunk", fmt(s.potions)],
     ["Legendary+ Rolls", fmt(s.rarePlus)],
     ["✨ Shinies", fmt(s.shinies)],
@@ -550,7 +591,6 @@ function renderSettings() {
   });
 }
 
-// ---------- Changelog ----------
 function renderChangelog() {
   document.getElementById("changelog").innerHTML = CHANGELOG.map((c, idx) =>
     `<div style="${idx ? "margin-top:18px" : ""}">
@@ -574,7 +614,6 @@ document.querySelectorAll("#tabs button").forEach(b => {
   };
 });
 
-// Playtime tracker
 setInterval(() => {
   if (document.hidden) return;
   state.stats.time++;
@@ -587,8 +626,10 @@ const baseLuck = () => 1 + state.luckLvl * LUCK_STEP;
 const potionMult = key => POTIONS.reduce((m, p) => (state.potions[p.id] > 0 ? m * p[key] : m), 1);
 const totalLuck = () => baseLuck() * potionMult("luck");
 const luckCost = (lvl = state.luckLvl) => Math.floor(LUCK_BASE_COST * Math.pow(LUCK_COST_GROWTH, lvl));
-const autoDelay = () => Math.max(50, 300 - state.speedLvl * 50);
+const autoDelay = () => SPEEDS[state.speedLvl];
+const rps = () => { const r = 1000 / autoDelay(); return r < 10 ? r.toFixed(1) : Math.round(r); };
 const speedCost = () => Math.floor(SPEED_BASE_COST * Math.pow(SPEED_COST_GROWTH, state.speedLvl));
+const isTurbo = () => !!autoTimer && autoDelay() < DISPLAY_MS;
 
 function roll() {
   const L = totalLuck();
@@ -603,7 +644,8 @@ function rollMutation() {
   return 0;
 }
 
-function applyRoll(i, m) {
+// Updates the game state for one roll; returns coins earned
+function processRoll(i, m) {
   const r = RARITIES[i];
   const earned = r.coins * MUTATIONS[m].mult * potionMult("coins");
   state.rolls++;
@@ -614,12 +656,18 @@ function applyRoll(i, m) {
   if (i >= 4) state.stats.rarePlus++;
   if (i > state.best) state.best = i;
   state.log.unshift([i, m]);
-  state.log = state.log.slice(0, 8);
+  if (state.log.length > 8) state.log.length = 8;
   POTIONS.forEach(p => { if (state.potions[p.id] > 0) state.potions[p.id]--; });
-  showResult(i, m, earned);
   if (i >= 5 || m === 2 || (m === 1 && i >= 4)) {
     toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(r.chance * MUTATIONS[m].chance)})`, m === 2 ? "#ff6ec7" : r.color);
   }
+  return earned;
+}
+
+// Single roll with full display (manual + slow auto)
+function applyRoll(i, m) {
+  const earned = processRoll(i, m);
+  showResult(i, m, earned, true);
   checkAch();
   save();
   render();
@@ -660,7 +708,7 @@ function animatedRoll() {
   step();
 }
 
-function showResult(i, m, earned) {
+function showResult(i, m, earned, animate) {
   const r = RARITIES[i];
   const box = document.getElementById("box");
   const nm = document.getElementById("resultName");
@@ -669,11 +717,12 @@ function showResult(i, m, earned) {
   nm.className = "name" + (m === 2 ? " rainbow" : m === 1 ? " shiny" : "");
   const mutTxt = m ? ` • ${MUTATIONS[m].mult}x ${MUTATIONS[m].name}` : "";
   document.getElementById("resultOdds").textContent =
-    `1 in ${fmt(r.chance)}${mutTxt}  •  +${fmt(earned)} 🪙`;
+    `1 in ${fmt(r.chance)}${mutTxt}  •  +${money(earned)}`;
   box.style.borderColor = m === 2 ? "#ff6ec7" : r.color;
+  const special = i >= 4 || m === 2;
   box.classList.remove("glow", "pop"); void box.offsetWidth;
-  box.classList.add("pop");
-  if (state.settings.fx && (i >= 4 || m === 2)) {
+  if (animate || special) box.classList.add("pop");
+  if (state.settings.fx && special) {
     box.style.boxShadow = `0 0 40px ${m === 2 ? "#ff6ec7" : r.color}`;
     box.classList.add("glow");
   } else box.style.boxShadow = "none";
@@ -705,8 +754,26 @@ function maxAffordable() {
   return { n, total };
 }
 
+// Throttled render so fast auto doesn't lag the page
+let renderQueued = false, lastRender = 0;
+function requestRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  const wait = Math.max(0, 100 - (performance.now() - lastRender));
+  setTimeout(() => { renderQueued = false; render(); }, wait);
+}
+
+let lastCoinsShown = -1;
 function render() {
-  document.getElementById("coins").textContent = fmt(state.coins);
+  lastRender = performance.now();
+  const cf = document.getElementById("coinFloat");
+  cf.textContent = money(state.coins);
+  if (state.coins > lastCoinsShown && lastCoinsShown >= 0 && !autoTimer) {
+    cf.classList.add("bump"); setTimeout(() => cf.classList.remove("bump"), 150);
+  }
+  lastCoinsShown = state.coins;
+
+  document.getElementById("coins").textContent = money(state.coins);
   const lm = potionMult("luck");
   document.getElementById("luck").textContent = totalLuck().toFixed(1) + "x";
   document.getElementById("luck").style.color = lm > 1 ? "#b388ff" : "";
@@ -717,19 +784,34 @@ function render() {
 
   document.getElementById("rollBtn").disabled = spinning || !!autoTimer;
 
+  // Auto button
+  const ab = document.getElementById("autoBtn");
+  if (!state.autoUnlocked) {
+    ab.className = "locked";
+    ab.innerHTML = `🔒 Unlock Auto<br><small>${money(AUTO_UNLOCK_COST)}</small>`;
+    ab.disabled = state.coins < AUTO_UNLOCK_COST;
+  } else {
+    ab.className = autoTimer ? "on" : "";
+    ab.innerHTML = `AUTO: ${autoTimer ? "ON" : "OFF"}<br><small>${rps()}/sec</small>`;
+    ab.disabled = false;
+  }
+
   const lb = document.getElementById("luckBtn");
-  lb.innerHTML = `Luck +${LUCK_STEP}<br><small>${fmt(luckCost())} 🪙</small>`;
+  lb.innerHTML = `Luck +${LUCK_STEP}<br><small>${money(luckCost())}</small>`;
   lb.disabled = state.coins < luckCost();
 
   const mx = maxAffordable();
   const maxBtn = document.getElementById("maxBtn");
   maxBtn.disabled = mx.n < 1;
-  maxBtn.innerHTML = `Buy Max (x${mx.n})<br><small>${fmt(mx.total)} 🪙</small>`;
+  maxBtn.innerHTML = `Buy Max (x${mx.n})<br><small>${money(mx.total)}</small>`;
 
   const speedBtn = document.getElementById("speedBtn");
-  if (autoDelay() <= 50) { speedBtn.textContent = "Auto Speed MAXED"; speedBtn.disabled = true; }
-  else {
-    speedBtn.innerHTML = `Auto Speed Lv${state.speedLvl + 1}<br><small>${fmt(speedCost())} 🪙</small>`;
+  if (state.speedLvl >= maxSpeedLvl) {
+    speedBtn.innerHTML = `Auto Speed MAXED<br><small>${rps()} rolls/sec</small>`;
+    speedBtn.disabled = true;
+  } else {
+    const next = Math.round(1000 / SPEEDS[state.speedLvl + 1] * 10) / 10;
+    speedBtn.innerHTML = `Auto Speed Lv${state.speedLvl + 1}/${maxSpeedLvl} → ${next}/sec<br><small>${money(speedCost())}</small>`;
     speedBtn.disabled = state.coins < speedCost();
   }
 
@@ -739,14 +821,16 @@ function render() {
     const b = document.createElement("button");
     b.className = "potion" + (idx === 2 ? " wide" : "");
     const left = state.potions[p.id] || 0;
-    b.innerHTML = `${p.name}${left ? ` <small>(${left} left)</small>` : ""}<br><small>${p.desc} • ${fmt(p.cost)} 🪙</small>`;
+    b.innerHTML = `${p.name}${left ? ` <small>(${left} left)</small>` : ""}<br><small>${p.desc} • ${money(p.cost)}</small>`;
     b.disabled = state.coins < p.cost;
     b.onclick = () => buyPotion(p);
     shop.appendChild(b);
   });
 
-  document.getElementById("effects").innerHTML = POTIONS.filter(p => state.potions[p.id] > 0)
+  let fx = POTIONS.filter(p => state.potions[p.id] > 0)
     .map(p => `<span class="chip">🧪 ${p.name} — ${state.potions[p.id]} rolls</span>`).join("");
+  if (isTurbo()) fx = `<span class="chip turbo">⚡ TURBO • ${rps()} rolls/sec • showing best of each batch</span>` + fx;
+  document.getElementById("effects").innerHTML = fx;
 
   const log = document.getElementById("log");
   log.innerHTML = state.log.length
@@ -755,11 +839,10 @@ function render() {
 
   const col = document.getElementById("collection");
   col.innerHTML = "";
-  let shinyKinds = 0, rainKinds = 0;
+  let rainKinds = 0;
   RARITIES.forEach(r => {
     const count = state.found[r.name] || 0;
     const sh = state.shiny[r.name] || 0, rb = state.rainbow[r.name] || 0;
-    if (sh) shinyKinds++;
     if (rb) rainKinds++;
     const div = document.createElement("div");
     div.className = "item";
@@ -771,7 +854,7 @@ function render() {
     col.appendChild(div);
   });
   document.getElementById("colCount").textContent =
-    `${foundKinds()}/${RARITIES.length} • ✨ ${shinyKinds} • 🌈 ${rainKinds}`;
+    `${foundKinds()}/${RARITIES.length} • ✨ ${shinyKinds()} • 🌈 ${rainKinds}`;
 
   document.getElementById("achTab").textContent =
     `🏆 Achievements (${ACH.filter(a => state.ach[a.id]).length}/${ACH.length})`;
@@ -807,27 +890,67 @@ function buyPotion(p) {
   checkAch(); save(); render();
 }
 
-// ---------- Auto + speed ----------
-const autoBtn = document.getElementById("autoBtn");
+// ---------- Auto roll ----------
+// Runs on a steady 50ms tick and does as many rolls as the speed level allows.
+// In turbo, the box only updates every DISPLAY_MS and shows the rarest roll since last update.
+let autoAcc = 0, lastTick = 0, lastShow = 0, pending = null;
+const score = (i, m) => i * 3 + m;
+
+function autoTick() {
+  const now = performance.now();
+  autoAcc += (now - lastTick) / autoDelay();
+  lastTick = now;
+  let n = Math.floor(autoAcc);
+  autoAcc -= n;
+  if (n > 200) n = 200; // safety cap if the tab was asleep
+  if (n < 1) return;
+
+  if (!isTurbo() && n === 1) { quickRoll(); return; }
+
+  for (let k = 0; k < n; k++) {
+    const i = roll(), m = rollMutation();
+    const earned = processRoll(i, m);
+    if (!pending || score(i, m) > score(pending.i, pending.m)) pending = { i, m, earned };
+  }
+  if (now - lastShow >= DISPLAY_MS && pending) {
+    showResult(pending.i, pending.m, pending.earned, false);
+    pending = null;
+    lastShow = now;
+  }
+  checkAch();
+  requestRender(); // saving happens on the 5s timer
+}
+
 function startAuto() {
   clearInterval(autoTimer);
-  autoTimer = setInterval(quickRoll, autoDelay());
-  autoBtn.textContent = "AUTO: ON"; autoBtn.classList.add("on");
+  autoAcc = 1; lastTick = performance.now(); pending = null;
+  autoTimer = setInterval(autoTick, 50);
 }
 function stopAuto() {
+  if (!autoTimer) return;
   clearInterval(autoTimer); autoTimer = null;
-  autoBtn.textContent = "AUTO: OFF"; autoBtn.classList.remove("on");
+  if (pending) { showResult(pending.i, pending.m, pending.earned, false); pending = null; }
+  save();
 }
-autoBtn.onclick = () => {
+
+document.getElementById("autoBtn").onclick = () => {
   if (spinning) return;
+  if (!state.autoUnlocked) {
+    if (state.coins < AUTO_UNLOCK_COST) return;
+    spend(AUTO_UNLOCK_COST);
+    state.autoUnlocked = true;
+    toast("🤖 Auto roll unlocked!", "#1fa65a", true);
+    checkAch(); save(); render();
+    return;
+  }
   autoTimer ? stopAuto() : startAuto();
   render();
 };
+
 document.getElementById("speedBtn").onclick = () => {
-  if (state.coins >= speedCost() && autoDelay() > 50) {
+  if (state.coins >= speedCost() && state.speedLvl < maxSpeedLvl) {
     spend(speedCost());
     state.speedLvl++;
-    if (autoTimer) startAuto();
     checkAch(); save(); render();
   }
 };
@@ -851,7 +974,7 @@ document.addEventListener("keydown", (e) => {
 
 load();
 renderChangelog();
-checkAch(); // award anything older saves already qualify for
+checkAch();
 render();
 save();
 </script>

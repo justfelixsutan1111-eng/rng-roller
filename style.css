@@ -328,3 +328,103 @@ textarea:focus { outline: 2px solid var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   body::before, body::after, h1, #rollBtn:not(:disabled) { animation: none; }
 }
+
+/* ===== Update 1.6 additions ===== */
+
+/* Void mutation */
+.void {
+  color: #d3a6ff !important;
+  text-shadow: 0 0 6px #000, 0 0 22px #8a2be2, 0 0 46px #4b0082 !important;
+  animation: voidPulse 1.4s ease-in-out infinite alternate;
+}
+@keyframes voidPulse { to { filter: brightness(1.35); } }
+
+/* Event glow + banner */
+.evGlow {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+  transition: opacity 1.2s, background 1.2s;
+}
+.evGlow.on { opacity: 1; }
+.eventBar {
+  text-align: center; font-size: .85em; padding: 9px 12px; margin-bottom: 12px;
+  border-radius: var(--radius-sm); background: var(--card); border: 1px solid var(--card-border);
+  color: var(--muted); transition: all .4s;
+}
+.eventBar.live { color: #fff; font-weight: 700; animation: evPulse 1.6s ease-in-out infinite alternate; }
+@keyframes evPulse { to { filter: brightness(1.25); } }
+
+/* Auto-stop picker */
+.autostop {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 10px; font-size: .85em; color: var(--muted);
+}
+.autostop select {
+  font-family: inherit; font-weight: 700; color: var(--text);
+  background: rgba(0, 0, 0, .35); border: 1px solid var(--panel-border);
+  border-radius: 99px; padding: 6px 12px; cursor: pointer;
+}
+
+/* Quests */
+.quest {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.quest + .quest { margin-top: 8px; }
+.quest .qt { font-weight: 700; font-size: .9em; }
+.quest .qr { font-size: .78em; color: var(--muted); margin: 3px 0 8px; display: flex; justify-content: space-between; }
+.quest.ready { border-color: rgba(34, 195, 122, .55); background: rgba(34, 195, 122, .08); }
+.quest button { width: 100%; margin-top: 8px; padding: 8px; background: linear-gradient(135deg, #1fa65a, #22c37a); }
+
+/* Clickable collection cards */
+.item { cursor: pointer; }
+
+/* Cutscene */
+.cut {
+  position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .82); opacity: 0; pointer-events: none; transition: opacity .25s;
+  overflow: hidden;
+}
+.cut.show { opacity: 1; pointer-events: auto; }
+.cut-inner { text-align: center; position: relative; z-index: 2; }
+.cut-odds { color: var(--muted); letter-spacing: 4px; font-size: .9em; opacity: 0; }
+.cut-name { font-size: 3.4em; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 30px currentColor; opacity: 0; }
+.cut-sub { font-size: .7em; color: var(--muted); margin-top: 14px; opacity: 0; }
+.cut.show .cut-odds { animation: cutFade .4s .1s forwards; }
+.cut.show .cut-name { animation: cutPop .5s .25s cubic-bezier(.2, 1.5, .4, 1) forwards; }
+.cut.show .cut-sub  { animation: cutFade .4s .6s forwards; }
+@keyframes cutFade { to { opacity: 1; } }
+@keyframes cutPop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+.spark {
+  position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%;
+  opacity: 0; z-index: 1;
+}
+.cut.show .spark { animation: spark 1s .3s ease-out forwards; }
+@keyframes spark {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(.3); }
+}
+
+/* Rarity info pop-up */
+.modal {
+  position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .6);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal.show { opacity: 1; pointer-events: auto; }
+.modal-card {
+  width: 100%; max-width: 380px; background: #12152a; border: 1px solid var(--panel-border);
+  border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
+  transform: scale(.92); transition: transform .2s;
+}
+.modal.show .modal-card { transform: scale(1); }
+.modal-card h3 { font-size: 1.5em; margin-bottom: 4px; }
+.modal-card .irow {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .06); font-size: .9em;
+}
+.modal-card .irow span:first-child { color: var(--muted); }
+.modal-card button { width: 100%; margin-top: 14px; }
+
+@media (max-width: 480px) { .cut-name { font-size: 2.3em; } }
+@media (prefers-reduced-motion: reduce) { .void, .eventBar.live { animation: none; } }
+

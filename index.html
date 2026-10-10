@@ -3,16 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RNG Roller — Update 1.57</title>
+<title>RNG Roller — Update 1.6</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="evGlow" id="evGlow"></div>
 <div class="toast" id="toast"></div>
 <div class="coinFloat" id="coinFloat">$0</div>
+
+<div class="cut" id="cut">
+  <div class="cut-inner">
+    <div class="cut-odds" id="cutOdds"></div>
+    <div class="cut-name" id="cutName"></div>
+    <div class="cut-sub">tap to skip</div>
+  </div>
+</div>
+
+<div class="modal" id="info"><div class="modal-card" id="infoCard"></div></div>
+
 <div class="wrap">
   <header>
     <h1>🎲 RNG ROLLER</h1>
-    <div class="ver">UPDATE 1.57 — DESIGN</div>
+    <div class="ver">UPDATE 1.6 — EVENTS & QUESTS</div>
   </header>
 
   <nav class="tabs" id="tabs">
@@ -27,6 +39,7 @@
     <div class="grid">
       <div>
         <div class="panel">
+          <div class="eventBar" id="eventBar">Next event soon...</div>
           <div class="stats">
             <div class="stat">Money<b id="coins">$0</b></div>
             <div class="stat">Luck<b id="luck">1.0x</b></div>
@@ -42,13 +55,21 @@
             <button id="rollBtn">ROLL</button>
             <button id="autoBtn">AUTO</button>
           </div>
+          <div class="autostop">
+            ⏹️ Auto-stop at
+            <select id="autoStop"></select>
+          </div>
         </div>
         <div class="panel">
-          <h2><span>COLLECTION</span><span id="colCount"></span></h2>
+          <h2><span>COLLECTION <small style="opacity:.6">(tap for info)</small></span><span id="colCount"></span></h2>
           <div class="collection" id="collection"></div>
         </div>
       </div>
       <div>
+        <div class="panel">
+          <h2><span>📜 QUESTS</span><span id="questCount"></span></h2>
+          <div id="questList"></div>
+        </div>
         <div class="panel">
           <h2>UPGRADES</h2>
           <div class="shop">
@@ -126,10 +147,13 @@ const RARITIES = [
 ];
 
 const MUTATIONS = [
-  { name: "",        icon: "",   chance: 1,   mult: 1 },
-  { name: "Shiny",   icon: "✨", chance: 50,  mult: 3 },
-  { name: "Rainbow", icon: "🌈", chance: 500, mult: 10 }
+  { name: "",        icon: "",   chance: 1,    mult: 1,  color: null },
+  { name: "Shiny",   icon: "✨", chance: 50,   mult: 3,  color: null },
+  { name: "Rainbow", icon: "🌈", chance: 500,  mult: 10, color: "#ff6ec7" },
+  { name: "Void",    icon: "🌑", chance: 5000, mult: 50, color: "#a64dff" }
 ];
+const MUT_KEYS = [null, "shiny", "rainbow", "voids"];
+const MUT_EVENT_KEYS = [null, "shiny", "rainbow", "void"];
 
 // ---- Balance settings ----
 const LUCK_BASE_COST = 25;
@@ -141,6 +165,9 @@ const SPEED_BASE_COST = 1500;
 const SPEED_COST_GROWTH = 1.9;
 const DISPLAY_MS = 130;
 const NOTIFY_RANGE = 100;
+const EVENT_LENGTH = 60;          // seconds an event lasts
+const EVENT_GAP = [120, 240];     // seconds between events (min, max)
+const CUTSCENE_MS = 1500;
 const SAVE_KEY = "rngRollerSaveV3";
 
 const POTIONS = [
@@ -149,36 +176,52 @@ const POTIONS = [
   { id: "mega",  name: "Mega Potion",  desc: "3x luck + 2x money • 25 rolls", cost: 3000, rolls: 25,  luck: 3, coins: 2 }
 ];
 
+const EVENTS = [
+  { id: "storm",   name: "⛈️ Storm",      desc: "2x luck",                  color: "#4d9bff", weight: 3, luck: 2 },
+  { id: "blood",   name: "🌕 Blood Moon", desc: "3x Rainbow & Void chance", color: "#ff3b3b", weight: 2, rainbow: 3, void: 3 },
+  { id: "gold",    name: "💰 Gold Rush",  desc: "3x money",                 color: "#ffc93b", weight: 3, money: 3 },
+  { id: "star",    name: "🌠 Starfall",   desc: "4x Shiny chance",          color: "#9ff3ff", weight: 3, shiny: 4 },
+  { id: "eclipse", name: "🌑 Eclipse",    desc: "3x luck + 2x money",       color: "#a64dff", weight: 1, luck: 3, money: 2 }
+];
+
+const QUESTS = {
+  rolls:  { text: g => `Roll ${fmt(g)} times`,                  goal: t => 250 * t,                  reward: t => 400 * t },
+  rare:   { text: g => `Roll Legendary or better ${g} times`,   goal: t => 1 + t,                    reward: t => 1500 * t },
+  shiny:  { text: g => `Get ${g} Shinies`,                      goal: t => 2 + t * 2,                reward: t => 1000 * t },
+  potion: { text: g => `Drink ${g} potions`,                    goal: t => 2 + Math.floor(t / 2),    reward: t => 800 * t },
+  event:  { text: g => `Roll ${fmt(g)} times during an event`,  goal: t => 150 * t,                  reward: t => 1200 * t },
+  luck:   { text: g => `Buy ${g} luck boosts`,                  goal: t => 3 + t * 2,                reward: t => 600 * t }
+};
+
 const SETTINGS = [
-  { k: "anim",    name: "Roll animation", desc: "Spin before showing manual rolls" },
-  { k: "popups",  name: "Pop-ups",        desc: "Alerts for rare rolls, mutations and achievements" },
-  { k: "fx",      name: "Glow & shake",   desc: "Box effects on Legendary+ and Rainbow rolls" },
-  { k: "compact", name: "Short numbers",  desc: "Show $1.2M instead of $1,200,000" }
+  { k: "anim",     name: "Roll animation", desc: "Spin before showing manual rolls" },
+  { k: "cutscene", name: "Cutscenes",      desc: "Big reveal for Mythic+, and Rainbow/Void Legendary+" },
+  { k: "popups",   name: "Pop-ups",        desc: "Alerts for rare rolls, mutations and achievements" },
+  { k: "fx",       name: "Glow & shake",   desc: "Box effects on Legendary+ and Rainbow/Void rolls" },
+  { k: "compact",  name: "Short numbers",  desc: "Show $1.2M instead of $1,200,000" }
 ];
 
 const CHANGELOG = [
+  { v: "1.6", t: "Events & Quests", notes: [
+    "Random events every few minutes: Storm, Blood Moon, Gold Rush, Starfall and the rare Eclipse",
+    "Quests: always 3 goals to complete for money",
+    "New 🌑 Void mutation (1 in 5,000, 50x money)",
+    "Short cutscenes for Mythic+ rolls (can be turned off)",
+    "Auto-stop: auto roll stops when you hit a chosen rarity",
+    "Tap a collection card to see its real odds with your luck",
+    "4 new achievements" ] },
   { v: "1.57", t: "Design", notes: [
     "Brand new look: glass panels, moving background and smoother buttons",
     "ROLL button pulses when it's ready",
     "Collection cards glow in their rarity colour",
-    "Better layout on small phones",
     "Design now lives in its own style.css file" ] },
   { v: "1.55", t: "Convenience", notes: [
     "Luck upgrades scale up a little slower in the late game",
-    "Recent Rolls is easier to read at high speeds",
     "Coins are now called Money (Coin Potion is now Money Potion)",
-    "Pop-ups skip rolls that aren't rare for you anymore — first finds always pop up",
+    "Pop-ups skip rolls that aren't rare for you anymore",
     "Mega Potion now costs $3,000 (was $5,000)" ] },
-  { v: "1.5", t: "Turbo", notes: [
-    "Money now uses $",
-    "18 new achievements (38 total)",
-    "Auto roll must be unlocked for $750",
-    "Auto Speed now has 12 smaller levels, up to 100 rolls/sec",
-    "Turbo display at high speeds",
-    "Money counter in the corner follows you when you scroll" ] },
-  { v: "1.4", t: "Mutations & more", notes: [
-    "Added ✨ Shiny and 🌈 Rainbow mutations",
-    "Added achievements, a Stats page, Settings and this Changelog" ] },
+  { v: "1.5", t: "Turbo", notes: [ "Money uses $, 18 new achievements, Auto unlock, 12 Auto Speed levels, Turbo display" ] },
+  { v: "1.4", t: "Mutations & more", notes: [ "Shiny and Rainbow mutations, achievements, Stats, Settings and Changelog" ] },
   { v: "1.36", t: "Official website", notes: [ "The game now has its own website on GitHub Pages" ] },
   { v: "1.35", t: "Saving", notes: [ "Auto-save, save status indicator, Export / Load save codes" ] },
   { v: "1.3", t: "Layout & potions", notes: [ "Two-column layout, potions, rolling animation" ] },
@@ -189,9 +232,10 @@ const CHANGELOG = [
 
 const fresh = () => ({
   v: 15, coins: 0, luckLvl: 0, rolls: 0, found: {}, best: -1, speedLvl: 0, autoUnlocked: false,
-  log: [], potions: {}, shiny: {}, rainbow: {}, ach: {},
-  stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, rarePlus: 0, time: 0, first: Date.now(), bestVal: 0 },
-  settings: { anim: true, popups: true, fx: true, compact: false }
+  log: [], potions: {}, shiny: {}, rainbow: {}, voids: {}, ach: {}, quests: [],
+  stats: { earned: 0, spent: 0, peak: 0, luckBought: 0, potions: 0, shinies: 0, rainbows: 0, voids: 0,
+           rarePlus: 0, time: 0, first: Date.now(), bestVal: 0, quests: 0, events: 0 },
+  settings: { anim: true, cutscene: true, popups: true, fx: true, compact: false, autoStop: -1 }
 });
 let state = fresh();
 let autoTimer = null;
@@ -214,9 +258,12 @@ function fmtTime(s) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
 }
-const foundKinds = () => RARITIES.filter(r => state.found[r.name]).length;
-const shinyKinds = () => RARITIES.filter(r => state.shiny[r.name]).length;
+const kinds = key => RARITIES.filter(r => state[key][r.name]).length;
+const foundKinds = () => kinds("found");
+const shinyKinds = () => kinds("shiny");
 const label = (i, m) => (m ? MUTATIONS[m].icon + " " + MUTATIONS[m].name + " " : "") + RARITIES[i].name;
+const mutColor = (i, m) => MUTATIONS[m].color || RARITIES[i].color;
+const mutClass = m => ["", " shiny", " rainbow", " void"][m];
 const maxSpeedLvl = SPEEDS.length - 1;
 
 function earn(n) {
@@ -253,7 +300,7 @@ function setSaveStatus(ok) {
 function sanitize(s) {
   if (!s || typeof s !== "object" || typeof s.coins !== "number") throw new Error("bad save");
   const out = Object.assign(fresh(), s);
-  ["found", "potions", "shiny", "rainbow", "ach"].forEach(k => {
+  ["found", "potions", "shiny", "rainbow", "voids", "ach"].forEach(k => {
     if (!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = {};
   });
   ["coins", "luckLvl", "rolls", "speedLvl"].forEach(k => { out[k] = Math.max(0, Number(out[k]) || 0); });
@@ -261,6 +308,7 @@ function sanitize(s) {
   out.stats = Object.assign(fresh().stats, hadStats ? s.stats : {});
   if (!hadStats) { out.stats.luckBought = out.luckLvl; out.stats.peak = out.coins; }
   out.settings = Object.assign(fresh().settings, s.settings && typeof s.settings === "object" ? s.settings : {});
+  out.settings.autoStop = Number.isInteger(out.settings.autoStop) ? out.settings.autoStop : -1;
 
   if (!s.v || s.v < 15) {
     const oldLvl = out.speedLvl;
@@ -276,15 +324,21 @@ function sanitize(s) {
   if (!out.stats.bestVal) {
     let bv = out.best >= 0 ? RARITIES[out.best].chance : 0;
     RARITIES.forEach(r => {
-      if (out.shiny[r.name]) bv = Math.max(bv, r.chance * MUTATIONS[1].chance);
-      if (out.rainbow[r.name]) bv = Math.max(bv, r.chance * MUTATIONS[2].chance);
+      [1, 2, 3].forEach(m => {
+        if (out[MUT_KEYS[m]][r.name]) bv = Math.max(bv, r.chance * MUTATIONS[m].chance);
+      });
     });
     out.stats.bestVal = bv;
   }
 
+  out.quests = (Array.isArray(out.quests) ? out.quests : [])
+    .filter(q => q && QUESTS[q.type] && q.goal > 0 && q.reward > 0)
+    .map(q => ({ type: q.type, goal: +q.goal, prog: Math.min(+q.prog || 0, +q.goal), reward: +q.reward }))
+    .slice(0, 3);
+
   out.log = (Array.isArray(out.log) ? out.log : [])
     .map(e => Array.isArray(e) ? e : [e, 0])
-    .filter(e => Number.isInteger(e[0]) && e[0] >= 0 && e[0] < RARITIES.length && [0, 1, 2].includes(e[1]))
+    .filter(e => Number.isInteger(e[0]) && e[0] >= 0 && e[0] < RARITIES.length && [0, 1, 2, 3].includes(e[1]))
     .slice(0, 8);
   return out;
 }
@@ -332,6 +386,8 @@ document.getElementById("importBtn").onclick = () => {
     if (!confirm("Load this save? Your current progress will be replaced.")) return;
     stopAuto();
     state = loaded;
+    fillQuests(); questSig = "";
+    document.getElementById("autoStop").value = state.settings.autoStop;
     save(); render(); resetBox(); renderTab();
     saveMsg("✅ Save loaded!", "#6fe3a0");
     toast("💾 Save loaded!", "#6fe3a0", true);
@@ -370,6 +426,7 @@ const ACH = [
   { id: "rain1",   name: "Taste the Rainbow", desc: "Get your first Rainbow",            reward: 3000,     p: () => [state.stats.rainbows, 1] },
   { id: "rain25",  name: "Double Rainbow",    desc: "Get 25 Rainbows",                   reward: 40000,    p: () => [state.stats.rainbows, 25] },
   { id: "rainLeg", name: "Double Rare",       desc: "Get a Rainbow Legendary or better", reward: 50000,    p: () => [RARITIES.slice(4).some(r => state.rainbow[r.name]) ? 1 : 0, 1] },
+  { id: "void1",   name: "Into the Void",     desc: "Get your first Void",               reward: 25000,    p: () => [state.stats.voids, 1] },
   { id: "luck5",   name: "Feeling Lucky",     desc: "Reach 5.0x base luck",              reward: 2000,     p: () => [state.luckLvl, 40] },
   { id: "luck10",  name: "Lucky Charm",       desc: "Reach 10.0x base luck",             reward: 25000,    p: () => [state.luckLvl, 90] },
   { id: "luck15",  name: "Four-Leaf Clover",  desc: "Reach 15.0x base luck",             reward: 200000,   p: () => [state.luckLvl, 140] },
@@ -378,6 +435,9 @@ const ACH = [
   { id: "speed",   name: "Speed Demon",       desc: "Max out Auto Speed",                reward: 250000,   p: () => [state.speedLvl, maxSpeedLvl] },
   { id: "pot10",   name: "Alchemist",         desc: "Drink 10 potions",                  reward: 2000,     p: () => [state.stats.potions, 10] },
   { id: "pot50",   name: "Potion Master",     desc: "Drink 50 potions",                  reward: 15000,    p: () => [state.stats.potions, 50] },
+  { id: "quest10", name: "Adventurer",        desc: "Complete 10 quests",                reward: 10000,    p: () => [state.stats.quests, 10] },
+  { id: "quest50", name: "Hero",              desc: "Complete 50 quests",                reward: 100000,   p: () => [state.stats.quests, 50] },
+  { id: "event5",  name: "Weather Watcher",   desc: "See 5 events",                      reward: 5000,     p: () => [state.stats.events, 5] },
   { id: "rich",    name: "Rich",              desc: "Have $100,000 at once",             reward: 10000,    p: () => [state.stats.peak, 100000] },
   { id: "rich1m",  name: "Millionaire",       desc: "Have $1,000,000 at once",           reward: 100000,   p: () => [state.stats.peak, 1000000] },
   { id: "spend1m", name: "Big Spender",       desc: "Spend $1,000,000 total",            reward: 50000,    p: () => [state.stats.spent, 1000000] },
@@ -419,6 +479,98 @@ function renderAch() {
   }).join("");
 }
 
+// ---------- Quests ----------
+const questTier = () => Math.min(30, 1 + Math.floor(state.luckLvl / 15) + Math.floor(state.stats.quests / 5));
+
+function newQuest() {
+  const used = state.quests.map(q => q.type);
+  const options = Object.keys(QUESTS).filter(t => !used.includes(t));
+  const type = options[Math.floor(Math.random() * options.length)];
+  const t = questTier();
+  return { type, goal: QUESTS[type].goal(t), prog: 0, reward: QUESTS[type].reward(t) };
+}
+function fillQuests() {
+  while (state.quests.length < 3) state.quests.push(newQuest());
+}
+function questProgress(type, n) {
+  state.quests.forEach(q => {
+    if (q.type === type && q.prog < q.goal) q.prog = Math.min(q.goal, q.prog + n);
+  });
+}
+function claimQuest(idx) {
+  const q = state.quests[idx];
+  if (!q || q.prog < q.goal) return;
+  earn(q.reward);
+  state.stats.quests++;
+  toast(`📜 Quest complete! +${money(q.reward)}`, "#22c37a", true);
+  state.quests.splice(idx, 1);
+  state.quests.splice(idx, 0, newQuest());
+  checkAch(); save(); render();
+}
+
+let questSig = "";
+function renderQuests() {
+  const sig = JSON.stringify(state.quests) + state.settings.compact;
+  if (sig === questSig) return;
+  questSig = sig;
+  const ready = state.quests.filter(q => q.prog >= q.goal).length;
+  document.getElementById("questCount").textContent = ready ? `${ready} ready!` : `Done: ${fmt(state.stats.quests)}`;
+  document.getElementById("questList").innerHTML = state.quests.map((q, idx) => {
+    const done = q.prog >= q.goal;
+    return `<div class="quest ${done ? "ready" : ""}">
+      <div class="qt">${QUESTS[q.type].text(q.goal)}</div>
+      <div class="qr"><span>${fmt(q.prog)}/${fmt(q.goal)}</span><span>${money(q.reward)}</span></div>
+      <div class="bar"><i style="width:${Math.min(100, q.prog / q.goal * 100)}%"></i></div>
+      ${done ? `<button data-q="${idx}">Claim ${money(q.reward)}</button>` : ""}
+    </div>`;
+  }).join("");
+}
+document.getElementById("questList").addEventListener("click", e => {
+  const b = e.target.closest("[data-q]");
+  if (b) claimQuest(+b.dataset.q);
+});
+
+// ---------- Events ----------
+let curEvent = null, eventEnd = 0;
+let nextEvent = Date.now() + randGap();
+function randGap() { return (EVENT_GAP[0] + Math.random() * (EVENT_GAP[1] - EVENT_GAP[0])) * 1000; }
+const evMult = k => (curEvent && curEvent[k]) || 1;
+
+function startEvent() {
+  const total = EVENTS.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * total;
+  curEvent = EVENTS.find(e => (r -= e.weight) < 0) || EVENTS[0];
+  eventEnd = Date.now() + EVENT_LENGTH * 1000;
+  state.stats.events++;
+  toast(`${curEvent.name} has started! ${curEvent.desc}`, curEvent.color, true);
+  checkAch();
+  render();
+}
+function endEvent() {
+  curEvent = null;
+  nextEvent = Date.now() + randGap();
+  render();
+}
+function renderEvent() {
+  const bar = document.getElementById("eventBar");
+  const glow = document.getElementById("evGlow");
+  if (curEvent) {
+    const left = Math.max(0, Math.ceil((eventEnd - Date.now()) / 1000));
+    bar.className = "eventBar live";
+    bar.style.borderColor = curEvent.color;
+    bar.style.background = curEvent.color + "26";
+    bar.textContent = `${curEvent.name} — ${curEvent.desc} • ${left}s left`;
+    glow.style.background = `radial-gradient(ellipse at top, ${curEvent.color}40, transparent 65%)`;
+    glow.classList.add("on");
+  } else {
+    const left = Math.max(0, Math.ceil((nextEvent - Date.now()) / 1000));
+    bar.className = "eventBar";
+    bar.style.borderColor = ""; bar.style.background = "";
+    bar.textContent = `🌤️ Next event in ${fmtTime(left)}`;
+    glow.classList.remove("on");
+  }
+}
+
 // ---------- Stats ----------
 function renderStats() {
   const s = state.stats;
@@ -435,6 +587,9 @@ function renderStats() {
     ["Legendary+ Rolls", fmt(s.rarePlus)],
     ["✨ Shinies", fmt(s.shinies)],
     ["🌈 Rainbows", fmt(s.rainbows)],
+    ["🌑 Voids", fmt(s.voids)],
+    ["📜 Quests Done", fmt(s.quests)],
+    ["🌦️ Events Seen", fmt(s.events)],
     ["Rarities Found", `${foundKinds()}/${RARITIES.length}`],
     ["Achievements", `${ACH.filter(a => state.ach[a.id]).length}/${ACH.length}`],
     ["Best Roll", state.best >= 0 ? RARITIES[state.best].name : "—"],
@@ -489,7 +644,12 @@ document.querySelectorAll("#tabs button").forEach(b => {
   };
 });
 
+// Every second: play time + events
 setInterval(() => {
+  const now = Date.now();
+  if (curEvent && now >= eventEnd) endEvent();
+  else if (!curEvent && now >= nextEvent) startEvent();
+  renderEvent();
   if (document.hidden) return;
   state.stats.time++;
   if (tab === "stats") renderStats();
@@ -499,7 +659,9 @@ setInterval(() => {
 // ---------- Game logic ----------
 const baseLuck = () => 1 + state.luckLvl * LUCK_STEP;
 const potionMult = key => POTIONS.reduce((m, p) => (state.potions[p.id] > 0 ? m * p[key] : m), 1);
-const totalLuck = () => baseLuck() * potionMult("luck");
+const totalLuck = () => baseLuck() * potionMult("luck") * evMult("luck");
+const moneyMult = () => potionMult("coins") * evMult("money");
+const mutChance = m => MUTATIONS[m].chance / evMult(MUT_EVENT_KEYS[m]);
 const luckCost = (lvl = state.luckLvl) => Math.floor(LUCK_BASE_COST * Math.pow(LUCK_COST_GROWTH, lvl));
 const autoDelay = () => SPEEDS[state.speedLvl];
 const rps = () => { const r = 1000 / autoDelay(); return r < 10 ? r.toFixed(1) : Math.round(r); };
@@ -514,9 +676,23 @@ function roll() {
   return 0;
 }
 function rollMutation() {
-  if (Math.random() < 1 / MUTATIONS[2].chance) return 2;
-  if (Math.random() < 1 / MUTATIONS[1].chance) return 1;
+  for (let m = 3; m >= 1; m--) {
+    if (Math.random() < 1 / mutChance(m)) return m;
+  }
   return 0;
+}
+
+// Real chance of each rarity with current luck
+function rarityOdds() {
+  const L = totalLuck(), out = [];
+  let rest = 1;
+  for (let i = RARITIES.length - 1; i >= 1; i--) {
+    const p = Math.min(1, L / RARITIES[i].chance);
+    out[i] = rest * p;
+    rest *= 1 - p;
+  }
+  out[0] = rest;
+  return out;
 }
 
 function pushLog(i, m) {
@@ -524,27 +700,41 @@ function pushLog(i, m) {
   if (state.log.length > 8) state.log.length = 8;
 }
 
+let stopHit = null;
+
 function processRoll(i, m, addToLog) {
   const r = RARITIES[i];
-  const earned = r.coins * MUTATIONS[m].mult * potionMult("coins");
+  const earned = r.coins * MUTATIONS[m].mult * moneyMult();
   const val = r.chance * MUTATIONS[m].chance;
-  const firstTime = m === 0 ? !state.found[r.name] : m === 1 ? !state.shiny[r.name] : !state.rainbow[r.name];
-  const rareEnough = i >= 5 || m === 2 || (m === 1 && i >= 4);
+  const firstTime = m === 0 ? !state.found[r.name] : !state[MUT_KEYS[m]][r.name];
+  const rareEnough = i >= 5 || m >= 2 || (m === 1 && i >= 4);
   const stillSpecial = firstTime || val * NOTIFY_RANGE > state.stats.bestVal;
 
   state.rolls++;
   earn(earned);
   state.found[r.name] = (state.found[r.name] || 0) + 1;
-  if (m === 1) { state.shiny[r.name] = (state.shiny[r.name] || 0) + 1; state.stats.shinies++; }
-  if (m === 2) { state.rainbow[r.name] = (state.rainbow[r.name] || 0) + 1; state.stats.rainbows++; }
+  if (m) state[MUT_KEYS[m]][r.name] = (state[MUT_KEYS[m]][r.name] || 0) + 1;
+  if (m === 1) state.stats.shinies++;
+  if (m === 2) state.stats.rainbows++;
+  if (m === 3) state.stats.voids++;
   if (i >= 4) state.stats.rarePlus++;
   if (i > state.best) state.best = i;
   if (val > state.stats.bestVal) state.stats.bestVal = val;
   if (addToLog) pushLog(i, m);
   POTIONS.forEach(p => { if (state.potions[p.id] > 0) state.potions[p.id]--; });
 
+  questProgress("rolls", 1);
+  if (i >= 4) questProgress("rare", 1);
+  if (m === 1) questProgress("shiny", 1);
+  if (curEvent) questProgress("event", 1);
+
+  if (autoTimer && state.settings.autoStop >= 0 && i >= state.settings.autoStop) stopHit = label(i, m);
+
   if (rareEnough && stillSpecial) {
-    toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(val)})`, m === 2 ? "#ff6ec7" : r.color);
+    const big = i >= 5 || (m >= 2 && i >= 4);
+    if (!(big && cutscene(i, m, val))) {
+      toast(`✨ ${label(i, m).toUpperCase()}! (1 in ${fmt(val)})`, mutColor(i, m));
+    }
   }
   return earned;
 }
@@ -598,16 +788,16 @@ function showResult(i, m, earned, animate) {
   const nm = document.getElementById("resultName");
   nm.textContent = label(i, m);
   nm.style.color = r.color;
-  nm.className = "name" + (m === 2 ? " rainbow" : m === 1 ? " shiny" : "");
+  nm.className = "name" + mutClass(m);
   const mutTxt = m ? ` • ${MUTATIONS[m].mult}x ${MUTATIONS[m].name}` : "";
   document.getElementById("resultOdds").textContent =
     `1 in ${fmt(r.chance)}${mutTxt}  •  +${money(earned)}`;
-  box.style.borderColor = m === 2 ? "#ff6ec7" : r.color;
-  const special = i >= 4 || m === 2;
+  const c = mutColor(i, m);
+  box.style.borderColor = c;
+  const special = i >= 4 || m >= 2;
   box.classList.remove("glow", "pop"); void box.offsetWidth;
   if (animate || special) box.classList.add("pop");
   if (state.settings.fx && special) {
-    const c = m === 2 ? "#ff6ec7" : r.color;
     box.style.boxShadow = `inset 0 0 60px rgba(0,0,0,.7), 0 0 40px ${c}`;
     box.classList.add("glow");
   } else box.style.boxShadow = "";
@@ -620,6 +810,67 @@ function resetBox() {
   const box = document.getElementById("box");
   box.style.borderColor = ""; box.style.boxShadow = "";
 }
+
+// ---------- Cutscene ----------
+let cutTimer;
+const cutEl = document.getElementById("cut");
+function cutscene(i, m, val) {
+  if (!state.settings.cutscene) return false;
+  const color = mutColor(i, m);
+  const nm = document.getElementById("cutName");
+  nm.textContent = label(i, m).toUpperCase();
+  nm.style.color = RARITIES[i].color;
+  nm.className = "cut-name" + mutClass(m);
+  document.getElementById("cutOdds").textContent = `1 IN ${fmt(val)}`;
+  cutEl.querySelectorAll(".spark").forEach(s => s.remove());
+  for (let k = 0; k < 28; k++) {
+    const s = document.createElement("span");
+    s.className = "spark";
+    const ang = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 220;
+    s.style.setProperty("--x", Math.cos(ang) * dist + "px");
+    s.style.setProperty("--y", Math.sin(ang) * dist + "px");
+    s.style.background = Math.random() < .5 ? color : "#fff";
+    s.style.boxShadow = `0 0 10px ${color}`;
+    cutEl.appendChild(s);
+  }
+  cutEl.classList.remove("show"); void cutEl.offsetWidth;
+  cutEl.classList.add("show");
+  clearTimeout(cutTimer);
+  cutTimer = setTimeout(hideCut, CUTSCENE_MS);
+  return true;
+}
+function hideCut() { clearTimeout(cutTimer); cutEl.classList.remove("show"); }
+cutEl.addEventListener("pointerdown", hideCut);
+
+// ---------- Rarity info ----------
+const infoEl = document.getElementById("info");
+function openInfo(i) {
+  const r = RARITIES[i];
+  const count = state.found[r.name] || 0;
+  const p = rarityOdds()[i];
+  const yourOdds = p > 0 ? `1 in ${fmt(Math.max(1, Math.round(1 / p)))}` : "—";
+  const rows = [
+    ["Base odds", `1 in ${fmt(r.chance)}`],
+    [`Your odds (${totalLuck().toFixed(1)}x luck)`, yourOdds],
+    ["Money per roll", money(r.coins * moneyMult())],
+    ["Times found", fmt(count)],
+    ["✨ Shiny", `1 in ${fmt(mutChance(1))} • ${MUTATIONS[1].mult}x • you have ${fmt(state.shiny[r.name] || 0)}`],
+    ["🌈 Rainbow", `1 in ${fmt(mutChance(2))} • ${MUTATIONS[2].mult}x • you have ${fmt(state.rainbow[r.name] || 0)}`],
+    ["🌑 Void", `1 in ${fmt(mutChance(3))} • ${MUTATIONS[3].mult}x • you have ${fmt(state.voids[r.name] || 0)}`]
+  ];
+  document.getElementById("infoCard").innerHTML = `
+    <h3 style="color:${count ? r.color : "#888"}">${count ? r.name : "???"}</h3>
+    <div style="color:var(--muted);font-size:.85em;margin-bottom:10px">${count ? "Found!" : "Not found yet"}</div>
+    ${rows.map(([k, v]) => `<div class="irow"><span>${k}</span><span>${v}</span></div>`).join("")}
+    <button id="infoClose">Close</button>`;
+  document.getElementById("infoClose").onclick = () => infoEl.classList.remove("show");
+  infoEl.classList.add("show");
+}
+infoEl.addEventListener("click", e => { if (e.target === infoEl) infoEl.classList.remove("show"); });
+document.getElementById("collection").addEventListener("pointerdown", e => {
+  const card = e.target.closest(".item");
+  if (card) openInfo(+card.dataset.i);
+});
 
 let toastTimer;
 function toast(msg, color, force) {
@@ -658,9 +909,8 @@ function render() {
   lastCoinsShown = state.coins;
 
   document.getElementById("coins").textContent = money(state.coins);
-  const lm = potionMult("luck");
   document.getElementById("luck").textContent = totalLuck().toFixed(1) + "x";
-  document.getElementById("luck").style.color = lm > 1 ? "#b388ff" : "";
+  document.getElementById("luck").style.color = totalLuck() > baseLuck() ? "#b388ff" : "";
   document.getElementById("rolls").textContent = fmt(state.rolls);
   const best = document.getElementById("best");
   if (state.best >= 0) { best.textContent = RARITIES[state.best].name; best.style.color = RARITIES[state.best].color; }
@@ -717,34 +967,36 @@ function render() {
 
   const log = document.getElementById("log");
   log.innerHTML = state.log.length
-    ? state.log.map(([i, m]) => `<div style="color:${RARITIES[i].color}">${label(i, m)} <span style="opacity:.5">— 1 in ${fmt(RARITIES[i].chance)}</span></div>`).join("")
+    ? state.log.map(([i, m]) => `<div style="color:${mutColor(i, m)}">${label(i, m)} <span style="opacity:.5">— 1 in ${fmt(RARITIES[i].chance)}</span></div>`).join("")
     : `<div style="opacity:.5">No rolls yet</div>`;
 
   const col = document.getElementById("collection");
   col.innerHTML = "";
-  let rainKinds = 0;
-  RARITIES.forEach(r => {
+  RARITIES.forEach((r, i) => {
     const count = state.found[r.name] || 0;
-    const sh = state.shiny[r.name] || 0, rb = state.rainbow[r.name] || 0;
-    if (rb) rainKinds++;
+    const sh = state.shiny[r.name] || 0, rb = state.rainbow[r.name] || 0, vd = state.voids[r.name] || 0;
     const div = document.createElement("div");
     div.className = "item";
+    div.dataset.i = i;
     if (count) {
       div.style.borderLeftColor = r.color;
       div.style.background = `linear-gradient(90deg, ${r.color}22, transparent 80%)`;
     }
-    const muts = (sh || rb) ? `<div class="m">${sh ? `✨ x${fmt(sh)} ` : ""}${rb ? `🌈 x${fmt(rb)}` : ""}</div>` : "";
+    const muts = (sh || rb || vd)
+      ? `<div class="m">${sh ? `✨ x${fmt(sh)} ` : ""}${rb ? `🌈 x${fmt(rb)} ` : ""}${vd ? `🌑 x${fmt(vd)}` : ""}</div>` : "";
     div.innerHTML = count
       ? `<div class="n" style="color:${r.color}">${r.name}</div><div class="c">1 in ${fmt(r.chance)} • x${fmt(count)}</div>${muts}`
       : `<div class="n">???</div><div class="c">1 in ${fmt(r.chance)}</div>`;
     col.appendChild(div);
   });
   document.getElementById("colCount").textContent =
-    `${foundKinds()}/${RARITIES.length} • ✨ ${shinyKinds()} • 🌈 ${rainKinds}`;
+    `${foundKinds()}/${RARITIES.length} • ✨ ${shinyKinds()} • 🌈 ${kinds("rainbow")} • 🌑 ${kinds("voids")}`;
 
   document.getElementById("achTab").textContent =
     `🏆 Achievements (${ACH.filter(a => state.ach[a.id]).length}/${ACH.length})`;
 
+  renderQuests();
+  renderEvent();
   if (tab === "ach") renderAch();
 }
 
@@ -755,6 +1007,7 @@ document.getElementById("luckBtn").onclick = () => {
   spend(c);
   state.luckLvl++;
   state.stats.luckBought++;
+  questProgress("luck", 1);
   checkAch(); save(); render();
 };
 
@@ -764,6 +1017,7 @@ document.getElementById("maxBtn").onclick = () => {
   spend(mx.total);
   state.luckLvl += mx.n;
   state.stats.luckBought += mx.n;
+  questProgress("luck", mx.n);
   checkAch(); save(); render();
 };
 
@@ -772,19 +1026,28 @@ function buyPotion(p) {
   spend(p.cost);
   state.potions[p.id] = (state.potions[p.id] || 0) + p.rolls;
   state.stats.potions++;
+  questProgress("potion", 1);
   toast(`🧪 ${p.name} active!`, "#b388ff");
   checkAch(); save(); render();
 }
 
 // ---------- Auto roll ----------
 let autoAcc = 0, lastTick = 0, lastShow = 0, pending = null;
-const score = (i, m) => i * 3 + m;
+const score = (i, m) => i * 4 + m;
 
 function flushPending() {
   if (!pending) return;
   showResult(pending.i, pending.m, pending.earned, false);
   pushLog(pending.i, pending.m);
   pending = null;
+}
+
+function handleStop() {
+  const what = stopHit;
+  stopHit = null;
+  stopAuto();
+  toast(`⏹️ Auto-stopped: ${what}`, "#22c37a", true);
+  render();
 }
 
 function autoTick() {
@@ -796,13 +1059,15 @@ function autoTick() {
   if (n > 200) n = 200;
   if (n < 1) return;
 
-  if (!isTurbo() && n === 1) { quickRoll(); return; }
+  if (!isTurbo() && n === 1) { quickRoll(); if (stopHit) handleStop(); return; }
 
   for (let k = 0; k < n; k++) {
     const i = roll(), m = rollMutation();
     const earned = processRoll(i, m, false);
+    if (stopHit) { pending = { i, m, earned }; break; }
     if (!pending || score(i, m) > score(pending.i, pending.m)) pending = { i, m, earned };
   }
+  if (stopHit) { flushPending(); checkAch(); handleStop(); return; }
   if (now - lastShow >= DISPLAY_MS && pending) {
     flushPending();
     lastShow = now;
@@ -813,7 +1078,7 @@ function autoTick() {
 
 function startAuto() {
   clearInterval(autoTimer);
-  autoAcc = 1; lastTick = performance.now(); pending = null;
+  autoAcc = 1; lastTick = performance.now(); pending = null; stopHit = null;
   autoTimer = setInterval(autoTick, 50);
 }
 function stopAuto() {
@@ -837,6 +1102,12 @@ document.getElementById("autoBtn").onclick = () => {
   render();
 };
 
+// Auto-stop picker
+const stopSel = document.getElementById("autoStop");
+stopSel.innerHTML = `<option value="-1">Off</option>` +
+  RARITIES.map((r, i) => i >= 4 ? `<option value="${i}">${r.name}+</option>` : "").join("");
+stopSel.onchange = () => { state.settings.autoStop = +stopSel.value; save(); };
+
 document.getElementById("speedBtn").onclick = () => {
   if (state.coins >= speedCost() && state.speedLvl < maxSpeedLvl) {
     spend(speedCost());
@@ -853,16 +1124,20 @@ document.getElementById("resetBtn").onclick = () => {
     const keepSettings = state.settings;
     state = fresh();
     state.settings = keepSettings;
+    fillQuests(); questSig = "";
     save(); render(); resetBox(); renderTab();
   }
 };
 
 document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "TEXTAREA") return;
+  if (["TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+  if (e.key === "Escape") { infoEl.classList.remove("show"); hideCut(); }
   if (e.code === "Space" && tab === "game") { e.preventDefault(); if (!e.repeat) animatedRoll(); }
 });
 
 load();
+fillQuests();
+stopSel.value = state.settings.autoStop;
 renderChangelog();
 checkAch();
 render();

@@ -4,6 +4,8 @@ This is a game me and my friends “made”, using GPT 6.1 Sol (not sponsored). 
 
 Hope you enjoy i guess…
 
+https://justfelixsutan1111-eng.github.io/rng-roller/
+
 # Credits
 
 ### Playtesters

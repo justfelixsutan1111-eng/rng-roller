@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#10121c">
-<title>RNG Game - Update 0.1 Beta</title>
+<title>RNG Game - Update 0.15 Beta - Convenience</title>
 
 <style>
   :root {
@@ -32,12 +32,19 @@
     font: 15px/1.6 system-ui, sans-serif;
   }
 
+  body.reduced-motion * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
   main {
     width: min(1250px, calc(100% - 32px));
     margin: 30px auto;
   }
 
-  header, .row {
+  header,
+  .row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -51,10 +58,24 @@
     line-height: 1.2;
   }
 
-  h2 { margin: 0; font-size: 22px; }
-  h3 { margin: 0; font-size: 16px; }
-  p { color: var(--muted); }
-  .subtitle { margin: 5px 0 0; color: var(--purple); }
+  h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  p {
+    color: var(--muted);
+  }
+
+  .subtitle {
+    margin: 5px 0 0;
+    color: var(--purple);
+  }
 
   .wallet {
     color: var(--gold);
@@ -74,15 +95,29 @@
     touch-action: manipulation;
   }
 
-  button:hover:not(:disabled) { filter: brightness(1.12); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  button:focus-visible {
+  button:hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+
+  button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  button:focus-visible,
+  input:focus-visible {
     outline: 3px solid white;
     outline-offset: 3px;
   }
 
-  .primary { background: var(--purple); color: #171020; }
-  .danger { color: #ffabab; }
+  .primary {
+    background: var(--purple);
+    color: #171020;
+  }
+
+  .danger {
+    color: #ffabab;
+  }
 
   .navigation {
     display: flex;
@@ -107,10 +142,14 @@
     color: var(--text);
   }
 
-  .page { margin-top: 20px; }
-  .page:focus { outline: none; }
+  .page {
+    margin-top: 20px;
+  }
 
-  /* Left: roll and collection. Right: focus and upgrades. */
+  .page:focus {
+    outline: none;
+  }
+
   .game-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
@@ -132,8 +171,6 @@
     border-radius: 18px;
     background: var(--panel);
   }
-
-  .hint { color: var(--muted); font-size: 12px; }
 
   .badge {
     display: inline-block;
@@ -160,7 +197,10 @@
     line-height: 1.2;
   }
 
-  #reward { min-height: 26px; margin: 12px 0 0; }
+  #reward {
+    min-height: 26px;
+    margin: 12px 0 0;
+  }
 
   .roll-controls {
     display: flex;
@@ -175,7 +215,9 @@
     font-size: 20px;
   }
 
-  #auto { flex: 1; }
+  #auto {
+    flex: 1;
+  }
 
   .track {
     position: relative;
@@ -187,7 +229,9 @@
     background: #0c101b;
   }
 
-  #target, #perfect, #needle {
+  #target,
+  #perfect,
+  #needle {
     position: absolute;
     top: 0;
     height: 100%;
@@ -199,7 +243,9 @@
     border-inline: 2px solid var(--green);
   }
 
-  #perfect { background: #b9ffdd; }
+  #perfect {
+    background: #b9ffdd;
+  }
 
   #needle {
     left: 0;
@@ -209,17 +255,26 @@
     box-shadow: 0 0 12px white;
   }
 
-  #focus { width: 100%; }
-  #focusMessage { min-height: 48px; margin-bottom: 8px; }
+  #focus {
+    width: 100%;
+  }
+
+  #focusMessage {
+    min-height: 48px;
+  }
 
   .upgrade {
-    padding: 17px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 0;
     border-top: 1px solid var(--border);
   }
 
-  .upgrade:first-child { margin-top: 16px; }
-  .upgrade:last-child { padding-bottom: 0; }
-  .upgrade p { margin: 5px 0 10px; font-size: 13px; }
+  .upgrade:first-child {
+    margin-top: 16px;
+  }
 
   .collection {
     display: grid;
@@ -235,7 +290,10 @@
     background: #111522;
   }
 
-  .item strong { font-size: 17px; }
+  .item strong {
+    font-size: 17px;
+  }
+
   .item span {
     display: block;
     margin-top: 4px;
@@ -243,7 +301,10 @@
     font-size: 12px;
   }
 
-  dl { margin: 16px 0; }
+  dl {
+    margin: 16px 0;
+  }
+
   dl > div {
     display: flex;
     justify-content: space-between;
@@ -252,9 +313,34 @@
     border-bottom: 1px solid var(--border);
   }
 
-  dt { color: var(--muted); }
-  dd { margin: 0; text-align: right; font-weight: 700; }
-  li { margin-bottom: 8px; color: var(--muted); }
+  dt {
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+    font-weight: 700;
+  }
+
+  li {
+    margin-bottom: 8px;
+    color: var(--muted);
+  }
+
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--purple);
+  }
 
   #notice {
     margin-top: 14px;
@@ -262,7 +348,9 @@
     font-size: 13px;
   }
 
-  #notice:empty { display: none; }
+  #notice:empty {
+    display: none;
+  }
 
   footer {
     margin: 24px 0;
@@ -271,16 +359,41 @@
   }
 
   @media (max-width: 850px) {
-    .game-layout { grid-template-columns: 1fr; }
+    .game-layout {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 450px) {
-    main { width: calc(100% - 24px); margin-top: 22px; }
-    .panel { padding: 18px; }
-    .roll-controls { flex-direction: column; }
-    .collection { gap: 8px; }
-    .item { padding: 12px; }
-    .reveal { min-height: 200px; }
+    main {
+      width: calc(100% - 24px);
+      margin-top: 22px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .roll-controls {
+      flex-direction: column;
+    }
+
+    .collection {
+      gap: 8px;
+    }
+
+    .item {
+      padding: 12px;
+    }
+
+    .reveal {
+      min-height: 200px;
+    }
+
+    .upgrade {
+      align-items: flex-start;
+      flex-direction: column;
+    }
   }
 </style>
 </head>
@@ -290,20 +403,43 @@
   <header>
     <div>
       <h1>RNG Game</h1>
-      <p class="subtitle">Update 0.1 Beta</p>
+      <p class="subtitle">Update 0.15 Beta - Convenience</p>
     </div>
-    <div class="wallet"><span id="coins">0</span> coins</div>
+
+    <div class="wallet">
+      <span id="coins">0</span> coins
+    </div>
   </header>
 
   <nav class="navigation" aria-label="Game navigation">
-    <button type="button" class="nav-button"
-      data-page="game" aria-controls="page-game"
-      aria-current="page">Game</button>
-    <button type="button" class="nav-button"
-      data-page="stats" aria-controls="page-stats">Stats</button>
-    <button type="button" class="nav-button"
+    <button
+      type="button"
+      class="nav-button"
+      data-page="game"
+      aria-controls="page-game"
+      aria-current="page"
+    >Game</button>
+
+    <button
+      type="button"
+      class="nav-button"
+      data-page="stats"
+      aria-controls="page-stats"
+    >Stats</button>
+
+    <button
+      type="button"
+      class="nav-button"
       data-page="changelog"
-      aria-controls="page-changelog">Changelog</button>
+      aria-controls="page-changelog"
+    >Changelog</button>
+
+    <button
+      type="button"
+      class="nav-button"
+      data-page="settings"
+      aria-controls="page-settings"
+    >Settings</button>
   </nav>
 
   <div id="notice" role="status"></div>
@@ -318,8 +454,6 @@
             <span id="boost" class="badge">No focus boost</span>
           </div>
 
-          <p>Roll to collect rarities and earn coins.</p>
-
           <div class="reveal" aria-live="polite" aria-atomic="true">
             <div id="rarity">Ready to roll</div>
             <p id="reward">Your result will appear here.</p>
@@ -328,22 +462,13 @@
           <div class="roll-controls">
             <button id="roll" type="button" class="primary">Roll</button>
             <button id="auto" type="button">
-              Unlock auto roll - 750 coins
+              Unlock auto roll - 250 coins
             </button>
           </div>
-
-          <p class="hint">
-            Manual cooldown: 0.85s. Auto: every 1.8s at base odds
-            for 40% coins. Auto roll preserves focus charges.
-          </p>
         </section>
 
         <section class="panel" aria-labelledby="heading-collection">
           <h2 id="heading-collection">Collection</h2>
-          <p class="hint">
-            Manual odds include your upgrades and current focus boost.
-            Auto odds always stay at base values.
-          </p>
           <div id="collection" class="collection"></div>
         </section>
       </div>
@@ -351,14 +476,9 @@
       <div class="column">
         <section class="panel" aria-labelledby="heading-focus">
           <div class="row">
-            <h2 id="heading-focus">Focus challenge</h2>
+            <h2 id="heading-focus">Focus</h2>
             <span id="focusBoost" class="badge">No focus boost</span>
           </div>
-
-          <p>
-            Stop inside the green zone for 2x luck on your next
-            5 manual rolls. The bright centre gives 3.5x instead.
-          </p>
 
           <div class="track" aria-hidden="true">
             <div id="target"></div>
@@ -367,28 +487,16 @@
           </div>
 
           <button id="focus" type="button" class="primary">
-            Start focus challenge
+            Start focus
           </button>
 
           <p id="focusMessage" role="status" aria-live="polite">
-            Start an attempt when you are ready.
-          </p>
-
-          <p class="hint">
-            Misses cost nothing. Boosts cannot stack.
-            Attempts have a 12-second cooldown.
-            Starting focus turns auto roll off.
-          </p>
-
-          <p class="hint">
-            Space stops an active challenge when no button is focused.
-            Leaving the Game section or browser tab ends the attempt.
+            Start an attempt when ready.
           </p>
         </section>
 
         <section class="panel" aria-labelledby="heading-upgrades">
           <h2 id="heading-upgrades">Upgrades</h2>
-          <p class="hint">Permanent improvements purchased with coins.</p>
           <div id="upgrades"></div>
         </section>
       </div>
@@ -396,39 +504,78 @@
     </div>
   </div>
 
-  <section id="page-stats" class="page panel"
-    aria-labelledby="heading-stats" tabindex="-1" hidden>
+  <section
+    id="page-stats"
+    class="page panel"
+    aria-labelledby="heading-stats"
+    tabindex="-1"
+    hidden
+  >
     <h2 id="heading-stats">Statistics</h2>
     <dl id="stats"></dl>
-    <p class="hint">
-      Resetting deletes all coins, upgrades, collection items,
-      and statistics.
-    </p>
+  </section>
+
+  <section
+    id="page-changelog"
+    class="page panel"
+    aria-labelledby="heading-changelog"
+    tabindex="-1"
+    hidden
+  >
+    <h2 id="heading-changelog">Changelog</h2>
+
+    <h3>Update 0.15 Beta - Convenience</h3>
+    <ul>
+      <li>Removed the manual roll cooldown.</li>
+      <li>Reduced auto roll cost to 250 coins.</li>
+      <li>Simplified upgrade names.</li>
+      <li>Added Settings to the navigation.</li>
+      <li>Removed unnecessary game text.</li>
+    </ul>
+
+    <h3>Update 0.1 Beta - RNG 101</h3>
+    <ul>
+      <li>Added instant rarity rolls.</li>
+      <li>Added six rarities.</li>
+      <li>Added Focus challenges.</li>
+      <li>Added upgrades and auto roll.</li>
+      <li>Added collection and statistics.</li>
+    </ul>
+  </section>
+
+  <section
+    id="page-settings"
+    class="page panel"
+    aria-labelledby="heading-settings"
+    tabindex="-1"
+    hidden
+  >
+    <h2 id="heading-settings">Settings</h2>
+
+    <label class="setting">
+      <input id="confirmReset" type="checkbox" checked>
+      Confirm before resetting
+    </label>
+
+    <label class="setting">
+      <input id="reducedMotion" type="checkbox">
+      Reduced motion
+    </label>
+
+    <label class="setting">
+      <input id="pauseOutsideGame" type="checkbox">
+      Pause auto roll outside Game
+    </label>
+
+    <br>
+
     <button id="reset" type="button" class="danger">
       Reset progress
     </button>
   </section>
 
-  <section id="page-changelog" class="page panel"
-    aria-labelledby="heading-changelog" tabindex="-1" hidden>
-    <h2 id="heading-changelog">Changelog</h2>
-    <p>Update 0.1 Beta</p>
-    <ul>
-      <li>Instant rarity rolls and coin rewards.</li>
-      <li>Six rarities, from Common to Mythic.</li>
-      <li>Optional focus challenges with five-roll luck boosts.</li>
-      <li>Perfect focus hits give a stronger boost.</li>
-      <li>Auto roll unlocks for 750 coins.</li>
-      <li>Permanent upgrades, live odds, and statistics.</li>
-      <li>Collection sits below Roll, with Focus and Upgrades beside it.</li>
-      <li>Local saving, cooldowns, and hidden-tab pauses.</li>
-    </ul>
-  </section>
-
   <footer>
-    Progress saves in this browser. No offline rewards.
-    Luck multiplies non-common rarity weights, not final probabilities.
-    Client-side games cannot fully prevent edited saves or advanced bots.
+    Progress saves in this browser.
   </footer>
 </main>
 
@@ -436,8 +583,9 @@
 "use strict";
 
 const $ = id => document.getElementById(id);
-const SAVE_KEY = "rng-game-instant-beta-01";
-const MANUAL_DELAY = 850;
+
+const SAVE_KEY = "rng-game-convenience-015";
+const AUTO_COST = 250;
 const AUTO_DELAY = 1800;
 const FOCUS_DELAY = 12000;
 
@@ -452,27 +600,31 @@ const rarities = [
 
 const upgrades = [
   {
-    key: "luck", name: "Fortune",
-    description: "+15% manual luck per level. Auto odds stay unchanged.",
-    base: 120, growth: 1.9, max: 8
+    key: "luck",
+    name: "Luck",
+    base: 120,
+    growth: 1.9,
+    max: 8
   },
   {
-    key: "income", name: "Coin craft",
-    description: "+15% coins per level, including auto rewards.",
-    base: 100, growth: 1.85, max: 8
+    key: "income",
+    name: "Coin Bonus",
+    base: 100,
+    growth: 1.85,
+    max: 8
   },
   {
-    key: "focus", name: "Steady hands",
-    description: "Slightly widens the focus target. Timing still matters.",
-    base: 150, growth: 2, max: 5
+    key: "focus",
+    name: "Focus Width",
+    base: 150,
+    growth: 2,
+    max: 5
   }
 ];
 
-// ---------- Saving ----------
-
 function freshSave() {
   return {
-    version: 1,
+    version: 2,
     coins: 0,
     earned: 0,
     manual: 0,
@@ -484,7 +636,19 @@ function freshSave() {
     multiplier: 1,
     focusReady: 0,
     autoOwned: false,
-    levels: { luck: 0, income: 0, focus: 0 },
+
+    settings: {
+      confirmReset: true,
+      reducedMotion: false,
+      pauseOutsideGame: false
+    },
+
+    levels: {
+      luck: 0,
+      income: 0,
+      focus: 0
+    },
+
     collection: [0, 0, 0, 0, 0, 0]
   };
 }
@@ -495,28 +659,57 @@ function upgradeCost(upgrade, level) {
 
 function validSave(s) {
   const integer = n => Number.isSafeInteger(n) && n >= 0;
-  if (!s || s.version !== 1) return false;
+
+  if (!s || s.version !== 2) return false;
 
   const fields = [
-    "coins", "earned", "manual", "automatic", "attempts",
-    "focusHits", "perfects", "charges", "focusReady"
+    "coins",
+    "earned",
+    "manual",
+    "automatic",
+    "attempts",
+    "focusHits",
+    "perfects",
+    "charges",
+    "focusReady"
   ];
 
   if (!fields.every(key => integer(s[key]))) return false;
   if (typeof s.autoOwned !== "boolean") return false;
 
-  if (!s.levels || !upgrades.every(u =>
-    integer(s.levels[u.key]) && s.levels[u.key] <= u.max
-  )) return false;
+  if (
+    !s.settings ||
+    typeof s.settings.confirmReset !== "boolean" ||
+    typeof s.settings.reducedMotion !== "boolean" ||
+    typeof s.settings.pauseOutsideGame !== "boolean"
+  ) {
+    return false;
+  }
 
-  if (!Array.isArray(s.collection) ||
-      s.collection.length !== rarities.length ||
-      !s.collection.every(integer)) return false;
+  if (
+    !s.levels ||
+    !upgrades.every(u =>
+      integer(s.levels[u.key]) &&
+      s.levels[u.key] <= u.max
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(s.collection) ||
+    s.collection.length !== rarities.length ||
+    !s.collection.every(integer)
+  ) {
+    return false;
+  }
 
   if (s.charges > 5) return false;
   if (s.charges === 0 && s.multiplier !== 1) return false;
   if (s.charges > 0 && ![2, 3.5].includes(s.multiplier)) return false;
-  if (s.perfects > s.focusHits || s.focusHits > s.attempts) return false;
+
+  if (s.perfects > s.focusHits) return false;
+  if (s.focusHits > s.attempts) return false;
   if (s.charges > 0 && s.focusHits === 0) return false;
   if (s.multiplier === 3.5 && s.perfects === 0) return false;
   if (s.automatic > 0 && !s.autoOwned) return false;
@@ -524,15 +717,18 @@ function validSave(s) {
   const rolls = s.manual + s.automatic;
   const collected = s.collection.reduce((a, b) => a + b, 0);
 
-  if (!Number.isSafeInteger(rolls) ||
-      !Number.isSafeInteger(collected) ||
-      collected !== rolls) return false;
+  if (!Number.isSafeInteger(rolls)) return false;
+  if (collected !== rolls) return false;
 
-  let spent = s.autoOwned ? 750 : 0;
+  let spent = s.autoOwned ? AUTO_COST : 0;
 
-  for (const u of upgrades) {
-    for (let level = 0; level < s.levels[u.key]; level++) {
-      spent += upgradeCost(u, level);
+  for (const upgrade of upgrades) {
+    for (
+      let level = 0;
+      level < s.levels[upgrade.key];
+      level++
+    ) {
+      spent += upgradeCost(upgrade, level);
     }
   }
 
@@ -543,17 +739,21 @@ let storageWarning = "";
 
 function loadSave() {
   storageWarning = "";
+
   try {
     const raw = localStorage.getItem(SAVE_KEY);
+
     if (!raw) return freshSave();
 
     const saved = JSON.parse(raw);
+
     if (validSave(saved)) return saved;
 
-    storageWarning = "Saved data was invalid. A new game was loaded.";
+    storageWarning = "Invalid save data. A new game was loaded.";
   } catch {
-    storageWarning = "Saved progress could not be loaded.";
+    storageWarning = "Save data could not be loaded.";
   }
+
   return freshSave();
 }
 
@@ -561,7 +761,6 @@ let state = loadSave();
 let currentPage = "game";
 let autoOn = false;
 let challenge = null;
-let nextManual = 0;
 let nextAuto = 0;
 let lastFrame = 0;
 let lastButtonPaint = 0;
@@ -573,7 +772,8 @@ let releaseLock = null;
 
 function loadedFocusDeadline() {
   return performance.now() + Math.min(
-    FOCUS_DELAY, Math.max(0, state.focusReady - Date.now())
+    FOCUS_DELAY,
+    Math.max(0, state.focusReady - Date.now())
   );
 }
 
@@ -581,50 +781,17 @@ let focusDeadline = loadedFocusDeadline();
 
 function save() {
   if (!canPlay) return;
+
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch {
-    $("notice").textContent =
-      "Saving is unavailable. Progress may be lost when you close this page.";
+    $("notice").textContent = "Saving is unavailable.";
   }
 }
 
 function price(upgrade) {
   return upgradeCost(upgrade, state.levels[upgrade.key]);
 }
-
-// ---------- Navigation ----------
-
-const navButtons = [...document.querySelectorAll("[data-page]")];
-const pages = [...document.querySelectorAll(".page")];
-
-function showPage(name) {
-  const destination = $("page-" + name);
-  if (!destination) return;
-
-  if (challenge && name !== "game") finishFocus(true);
-
-  currentPage = name;
-
-  for (const button of navButtons) {
-    if (button.dataset.page === name) {
-      button.setAttribute("aria-current", "page");
-    } else {
-      button.removeAttribute("aria-current");
-    }
-  }
-
-  for (const page of pages) page.hidden = page !== destination;
-
-  renderButtons();
-  destination.focus({ preventScroll: true });
-}
-
-for (const button of navButtons) {
-  button.addEventListener("click", () => showPage(button.dataset.page));
-}
-
-// ---------- Randomness ----------
 
 function random() {
   const value = new Uint32Array(1);
@@ -639,93 +806,150 @@ function manualLuck() {
 
 function weights(automatic = false) {
   const luck = automatic ? 1 : manualLuck();
-  return rarities.map((r, i) => r.weight * (i === 0 ? 1 : luck));
+
+  return rarities.map((rarity, index) =>
+    rarity.weight * (index === 0 ? 1 : luck)
+  );
 }
 
 function chooseRarity(automatic) {
   const list = weights(automatic);
   let ticket = random() * list.reduce((a, b) => a + b, 0);
 
-  for (let i = 0; i < list.length; i++) {
-    ticket -= list[i];
-    if (ticket < 0) return i;
+  for (let index = 0; index < list.length; index++) {
+    ticket -= list[index];
+
+    if (ticket < 0) return index;
   }
 
   return list.length - 1;
 }
 
-// ---------- Rendering ----------
+/* Navigation */
+
+const navButtons = [...document.querySelectorAll("[data-page]")];
+const pages = [...document.querySelectorAll(".page")];
+
+function showPage(name) {
+  const destination = $("page-" + name);
+
+  if (!destination) return;
+
+  if (challenge && name !== "game") {
+    finishFocus(true);
+  }
+
+  currentPage = name;
+
+  for (const button of navButtons) {
+    if (button.dataset.page === name) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  }
+
+  for (const page of pages) {
+    page.hidden = page !== destination;
+  }
+
+  renderButtons();
+  destination.focus({ preventScroll: true });
+}
+
+for (const button of navButtons) {
+  button.addEventListener("click", () => {
+    showPage(button.dataset.page);
+  });
+}
+
+/* Rendering */
 
 function renderButtons() {
-  const now = performance.now();
   const blocked = !canPlay || document.hidden;
-  const waiting = now < nextManual;
-  const remaining = Math.max(0, focusDeadline - now);
+  const focusRemaining = Math.max(0, focusDeadline - performance.now());
 
-  $("roll").disabled = blocked || autoOn || !!challenge || waiting;
-  $("roll").textContent = autoOn
-    ? "Auto roll active"
-    : waiting ? "Cooling down..." : "Roll";
+  $("roll").disabled =
+    blocked ||
+    autoOn ||
+    !!challenge;
 
-  $("auto").disabled = blocked || !!challenge ||
-    (!state.autoOwned && state.coins < 750);
+  $("roll").textContent =
+    autoOn ? "Auto roll active" : "Roll";
+
+  $("auto").disabled =
+    blocked ||
+    !!challenge ||
+    (!state.autoOwned && state.coins < AUTO_COST);
 
   $("auto").textContent = state.autoOwned
     ? `Auto roll: ${autoOn ? "ON" : "OFF"}`
-    : "Unlock auto roll - 750 coins";
+    : `Unlock auto roll - ${AUTO_COST} coins`;
 
-  $("focus").disabled = blocked ||
-    (!challenge && (state.charges > 0 || remaining > 0));
+  $("focus").disabled =
+    blocked ||
+    (!challenge &&
+      (state.charges > 0 || focusRemaining > 0));
 
   $("focus").textContent = challenge
     ? "Stop needle"
     : state.charges > 0
-      ? "Use your focus charges first"
-      : remaining > 0
-        ? `Focus ready in ${Math.ceil(remaining / 1000)}s`
-        : "Start focus challenge";
+      ? "Use focus charges first"
+      : focusRemaining > 0
+        ? `Ready in ${Math.ceil(focusRemaining / 1000)}s`
+        : "Start focus";
 
   $("reset").disabled = blocked;
-
-  for (const button of document.querySelectorAll("[data-upgrade]")) {
-    const u = upgrades.find(item => item.key === button.dataset.upgrade);
-    button.disabled = blocked || !!challenge ||
-      state.levels[u.key] >= u.max || state.coins < price(u);
-  }
 }
 
 function renderUpgrades() {
-  $("upgrades").replaceChildren(...upgrades.map(u => {
+  $("upgrades").replaceChildren(...upgrades.map(upgrade => {
     const box = document.createElement("div");
     box.className = "upgrade";
 
-    const title = document.createElement("h3");
-    title.textContent = `${u.name} - ${state.levels[u.key]}/${u.max}`;
-
-    const description = document.createElement("p");
-    description.textContent = u.description;
+    const title = document.createElement("strong");
+    title.textContent =
+      `${upgrade.name} ${state.levels[upgrade.key]}/${upgrade.max}`;
 
     const button = document.createElement("button");
     button.type = "button";
-    button.dataset.upgrade = u.key;
-    button.textContent = state.levels[u.key] >= u.max
+
+    const maxed = state.levels[upgrade.key] >= upgrade.max;
+
+    button.textContent = maxed
       ? "Maxed"
-      : `Buy - ${price(u).toLocaleString()} coins`;
+      : `Buy ${price(upgrade).toLocaleString()}`;
+
+    button.disabled =
+      !canPlay ||
+      !!challenge ||
+      maxed ||
+      state.coins < price(upgrade);
 
     button.addEventListener("click", event => {
-      if (!event.isTrusted || !canPlay || document.hidden || challenge) return;
-      if (state.levels[u.key] >= u.max) return;
+      if (
+        !event.isTrusted ||
+        !canPlay ||
+        document.hidden ||
+        challenge
+      ) {
+        return;
+      }
 
-      const amount = price(u);
+      if (state.levels[upgrade.key] >= upgrade.max) return;
+
+      const amount = price(upgrade);
+
       if (state.coins < amount) return;
 
       state.coins -= amount;
-      state.levels[u.key]++;
+      state.levels[upgrade.key]++;
+
       save();
       render();
     });
 
-    box.append(title, description, button);
+    box.append(title, button);
     return box;
   }));
 }
@@ -733,31 +957,39 @@ function renderUpgrades() {
 function renderCollection() {
   const list = weights();
   const total = list.reduce((a, b) => a + b, 0);
-  const baseTotal = rarities.reduce((sum, r) => sum + r.weight, 0);
+  const baseTotal = rarities.reduce((sum, rarity) =>
+    sum + rarity.weight, 0
+  );
 
   function chance(value) {
     const percent = value * 100;
-    return `${percent.toFixed(percent < 0.1 ? 4 : 2)}%`;
+
+    return `${percent.toFixed(
+      percent < 0.1 ? 4 : 2
+    )}%`;
   }
 
-  $("collection").replaceChildren(...rarities.map((r, i) => {
+  $("collection").replaceChildren(...rarities.map((rarity, index) => {
     const box = document.createElement("div");
     box.className = "item";
 
     const title = document.createElement("strong");
-    title.textContent = r.name;
-    title.style.color = r.color;
+    title.textContent = rarity.name;
+    title.style.color = rarity.color;
 
     const count = document.createElement("span");
-    count.textContent = `${state.collection[i].toLocaleString()} found`;
+    count.textContent =
+      `${state.collection[index].toLocaleString()} found`;
 
     const manual = document.createElement("span");
-    manual.textContent = `Manual: ${chance(list[i] / total)}`;
+    manual.textContent =
+      `Manual: ${chance(list[index] / total)}`;
 
-    const auto = document.createElement("span");
-    auto.textContent = `Auto: ${chance(r.weight / baseTotal)}`;
+    const automatic = document.createElement("span");
+    automatic.textContent =
+      `Auto: ${chance(rarity.weight / baseTotal)}`;
 
-    box.append(title, count, manual, auto);
+    box.append(title, count, manual, automatic);
     return box;
   }));
 }
@@ -765,14 +997,14 @@ function renderCollection() {
 function renderStats() {
   let best = "None yet";
 
-  for (let i = rarities.length - 1; i >= 0; i--) {
-    if (state.collection[i] > 0) {
-      best = rarities[i].name;
+  for (let index = rarities.length - 1; index >= 0; index--) {
+    if (state.collection[index] > 0) {
+      best = rarities[index].name;
       break;
     }
   }
 
-  const success = state.attempts
+  const focusRate = state.attempts
     ? `${(state.focusHits / state.attempts * 100).toFixed(1)}%`
     : "0%";
 
@@ -783,11 +1015,11 @@ function renderStats() {
     ["Best rarity", best],
     ["Lifetime coins", state.earned.toLocaleString()],
     ["Focus attempts", state.attempts.toLocaleString()],
-    ["Successful focus hits", state.focusHits.toLocaleString()],
-    ["Perfect focus hits", state.perfects.toLocaleString()],
-    ["Focus success rate", success],
-    ["Current manual luck", `${manualLuck().toFixed(2)}x`],
-    ["Auto roll unlocked", state.autoOwned ? "Yes" : "No"]
+    ["Focus hits", state.focusHits.toLocaleString()],
+    ["Perfect hits", state.perfects.toLocaleString()],
+    ["Focus success", focusRate],
+    ["Manual luck", `${manualLuck().toFixed(2)}x`],
+    ["Auto unlocked", state.autoOwned ? "Yes" : "No"]
   ];
 
   $("stats").replaceChildren(...rows.map(([label, value]) => {
@@ -797,16 +1029,28 @@ function renderStats() {
 
     dt.textContent = label;
     dd.textContent = value;
+
     row.append(dt, dd);
     return row;
   }));
+}
+
+function renderSettings() {
+  $("confirmReset").checked = state.settings.confirmReset;
+  $("reducedMotion").checked = state.settings.reducedMotion;
+  $("pauseOutsideGame").checked = state.settings.pauseOutsideGame;
+
+  document.body.classList.toggle(
+    "reduced-motion",
+    state.settings.reducedMotion
+  );
 }
 
 function render() {
   $("coins").textContent = state.coins.toLocaleString();
 
   const boost = state.charges > 0
-    ? `${state.multiplier}x focus - ${state.charges} rolls left`
+    ? `${state.multiplier}x focus - ${state.charges} left`
     : "No focus boost";
 
   $("boost").textContent = boost;
@@ -815,21 +1059,33 @@ function render() {
   renderUpgrades();
   renderCollection();
   renderStats();
+  renderSettings();
   renderButtons();
 }
 
-// ---------- Rolls ----------
+/* Rolling */
 
 function roll(automatic = false) {
   const now = performance.now();
+
   if (!canPlay || document.hidden || challenge) return;
 
   if (automatic) {
-    if (!autoOn || !state.autoOwned || now < nextAuto) return;
+    if (
+      !autoOn ||
+      !state.autoOwned ||
+      now < nextAuto ||
+      (
+        state.settings.pauseOutsideGame &&
+        currentPage !== "game"
+      )
+    ) {
+      return;
+    }
+
     nextAuto = now + AUTO_DELAY;
   } else {
-    if (currentPage !== "game" || autoOn || now < nextManual) return;
-    nextManual = now + MANUAL_DELAY;
+    if (autoOn || currentPage !== "game") return;
   }
 
   const index = chooseRarity(automatic);
@@ -849,16 +1105,20 @@ function roll(automatic = false) {
     state.automatic++;
   } else {
     state.manual++;
+
     if (state.charges > 0) {
       state.charges--;
-      if (state.charges === 0) state.multiplier = 1;
+
+      if (state.charges === 0) {
+        state.multiplier = 1;
+      }
     }
   }
 
   $("rarity").textContent = rarity.name;
   $("rarity").style.color = rarity.color;
   $("reward").textContent =
-    `+${reward} coins${automatic ? " - Auto roll" : ""}`;
+    `+${reward} coins${automatic ? " - Auto" : ""}`;
 
   save();
   render();
@@ -869,31 +1129,44 @@ $("roll").addEventListener("click", event => {
 });
 
 $("auto").addEventListener("click", event => {
-  if (!event.isTrusted || !canPlay || document.hidden || challenge) return;
+  if (
+    !event.isTrusted ||
+    !canPlay ||
+    document.hidden ||
+    challenge
+  ) {
+    return;
+  }
 
   if (!state.autoOwned) {
-    if (state.coins < 750) return;
-    state.coins -= 750;
+    if (state.coins < AUTO_COST) return;
+
+    state.coins -= AUTO_COST;
     state.autoOwned = true;
   }
 
   autoOn = !autoOn;
-
-  const now = performance.now();
-  nextAuto = Math.max(nextAuto, now + AUTO_DELAY);
-  nextManual = Math.max(nextManual, now + MANUAL_DELAY);
+  nextAuto = performance.now() + AUTO_DELAY;
 
   save();
   render();
 });
 
-// ---------- Focus ----------
+/* Focus */
 
 function startFocus() {
   const now = performance.now();
 
-  if (!canPlay || document.hidden || currentPage !== "game" ||
-      challenge || state.charges > 0 || now < focusDeadline) return;
+  if (
+    !canPlay ||
+    document.hidden ||
+    currentPage !== "game" ||
+    challenge ||
+    state.charges > 0 ||
+    now < focusDeadline
+  ) {
+    return;
+  }
 
   autoOn = false;
   state.attempts++;
@@ -910,22 +1183,36 @@ function startFocus() {
 
   const c = challenge;
 
-  $("target").style.left = `${(c.centre - c.width / 2) * 100}%`;
-  $("target").style.width = `${c.width * 100}%`;
-  $("perfect").style.left = `${(c.centre - c.width * 0.1) * 100}%`;
-  $("perfect").style.width = `${c.width * 0.2 * 100}%`;
-  $("needle").style.left = c.reverse ? "100%" : "0%";
+  $("target").style.left =
+    `${(c.centre - c.width / 2) * 100}%`;
 
-  $("focusMessage").textContent = "Stop inside the green zone.";
+  $("target").style.width =
+    `${c.width * 100}%`;
+
+  $("perfect").style.left =
+    `${(c.centre - c.width * 0.1) * 100}%`;
+
+  $("perfect").style.width =
+    `${c.width * 0.2 * 100}%`;
+
+  $("needle").style.left =
+    c.reverse ? "100%" : "0%";
+
+  $("focusMessage").textContent =
+    "Stop inside the green zone.";
+
   lastFrame = now;
+
   save();
   render();
 }
 
 function focusPosition(now) {
   const progress = Math.min(
-    1, Math.max(0, (now - challenge.started) / challenge.duration)
+    1,
+    Math.max(0, (now - challenge.started) / challenge.duration)
   );
+
   return challenge.reverse ? 1 - progress : progress;
 }
 
@@ -933,32 +1220,42 @@ function finishFocus(forcedMiss = false) {
   if (!challenge) return;
 
   const now = performance.now();
-  const c = challenge;
+  const current = challenge;
   const position = focusPosition(now);
   const stalled = lastFrame > 0 && now - lastFrame > 250;
 
   challenge = null;
 
-  const distance = Math.abs(position - c.centre);
-  const hit = !forcedMiss && !stalled &&
-    now - c.started < c.duration && distance <= c.width / 2;
-  const perfect = hit && distance <= c.width * 0.1;
+  const distance = Math.abs(position - current.centre);
+
+  const hit =
+    !forcedMiss &&
+    !stalled &&
+    now - current.started < current.duration &&
+    distance <= current.width / 2;
+
+  const perfect =
+    hit &&
+    distance <= current.width * 0.1;
 
   $("needle").style.left = `${position * 100}%`;
 
   if (hit) {
     state.focusHits++;
-    if (perfect) state.perfects++;
+
+    if (perfect) {
+      state.perfects++;
+    }
 
     state.charges = 5;
     state.multiplier = perfect ? 3.5 : 2;
 
     $("focusMessage").textContent = perfect
-      ? "Perfect! 3.5x luck for your next 5 manual rolls."
-      : "Hit! 2x luck for your next 5 manual rolls.";
+      ? "Perfect! 3.5x luck for 5 rolls."
+      : "Hit! 2x luck for 5 rolls.";
   } else {
     $("focusMessage").textContent =
-      "Miss. Nothing lost - try again after the cooldown.";
+      "Miss. Nothing lost.";
   }
 
   save();
@@ -967,45 +1264,97 @@ function finishFocus(forcedMiss = false) {
 
 $("focus").addEventListener("click", event => {
   if (!event.isTrusted || !canPlay || document.hidden) return;
-  if (challenge) finishFocus();
-  else startFocus();
+
+  if (challenge) {
+    finishFocus();
+  } else {
+    startFocus();
+  }
 });
 
-// Space rolls normally, or stops an active focus attempt.
-// Focused buttons keep their standard keyboard behavior.
-document.addEventListener("keydown", event => {
-  if (event.code !== "Space" || event.repeat || !event.isTrusted ||
-      !canPlay || document.hidden || currentPage !== "game") return;
+/* Keyboard */
 
-  if (event.target instanceof Element && event.target.closest(
-    "button, input, textarea, select, summary, a, [contenteditable]"
-  )) return;
+document.addEventListener("keydown", event => {
+  if (
+    event.code !== "Space" ||
+    event.repeat ||
+    !event.isTrusted ||
+    !canPlay ||
+    document.hidden ||
+    currentPage !== "game"
+  ) {
+    return;
+  }
+
+  if (
+    event.target instanceof Element &&
+    event.target.closest(
+      "button, input, textarea, select, summary, a"
+    )
+  ) {
+    return;
+  }
 
   event.preventDefault();
 
-  if (challenge) finishFocus();
-  else roll();
+  if (challenge) {
+    finishFocus();
+  } else {
+    roll();
+  }
 });
 
-// ---------- Reset ----------
+/* Settings */
+
+$("confirmReset").addEventListener("change", event => {
+  state.settings.confirmReset = event.target.checked;
+  save();
+});
+
+$("reducedMotion").addEventListener("change", event => {
+  state.settings.reducedMotion = event.target.checked;
+  renderSettings();
+  save();
+});
+
+$("pauseOutsideGame").addEventListener("change", event => {
+  state.settings.pauseOutsideGame = event.target.checked;
+  save();
+});
+
+/* Reset */
 
 $("reset").addEventListener("click", event => {
-  if (!event.isTrusted || !canPlay || document.hidden) return;
-  if (!confirm("Delete all progress? This cannot be undone.")) return;
+  if (
+    !event.isTrusted ||
+    !canPlay ||
+    document.hidden
+  ) {
+    return;
+  }
+
+  if (
+    state.settings.confirmReset &&
+    !confirm("Delete all progress?")
+  ) {
+    return;
+  }
+
+  const settings = state.settings;
 
   autoOn = false;
   challenge = null;
   state = freshSave();
+  state.settings = settings;
 
-  const now = performance.now();
-  nextManual = now + MANUAL_DELAY;
-  nextAuto = now + AUTO_DELAY;
+  nextAuto = performance.now() + AUTO_DELAY;
   focusDeadline = 0;
 
   $("rarity").textContent = "Ready to roll";
   $("rarity").style.color = "";
-  $("reward").textContent = "Progress reset.";
-  $("focusMessage").textContent = "Start an attempt when you are ready.";
+  $("reward").textContent = "Your result will appear here.";
+  $("focusMessage").textContent = "Start an attempt when ready.";
+
   $("target").style.width = "0";
   $("perfect").style.width = "0";
   $("needle").style.left = "0";
@@ -1014,14 +1363,12 @@ $("reset").addEventListener("click", event => {
   render();
 });
 
-// ---------- Tab handling ----------
+/* Tabs and saving */
 
 function reloadProgress() {
   state = loadSave();
   focusDeadline = loadedFocusDeadline();
-  const now = performance.now();
-  nextManual = now + MANUAL_DELAY;
-  nextAuto = now + AUTO_DELAY;
+  nextAuto = performance.now() + AUTO_DELAY;
   $("notice").textContent = storageWarning;
 }
 
@@ -1039,7 +1386,7 @@ async function acquireLock() {
       async lock => {
         if (!lock) {
           $("notice").textContent =
-            "The game is active in another tab. Close it, then reload this tab.";
+            "The game is open in another tab.";
           render();
           return;
         }
@@ -1059,7 +1406,7 @@ async function acquireLock() {
     reloadProgress();
     canPlay = true;
     $("notice").textContent =
-      "Single-tab protection is unavailable. Please play in one tab only.";
+      "Single-tab protection is unavailable.";
     render();
   } finally {
     lockPending = false;
@@ -1069,20 +1416,27 @@ async function acquireLock() {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     autoOn = false;
-    if (challenge) finishFocus(true);
+
+    if (challenge) {
+      finishFocus(true);
+    }
+
     save();
   } else {
-    const now = performance.now();
-    lastFrame = now;
-    nextManual = Math.max(nextManual, now + MANUAL_DELAY);
-    nextAuto = Math.max(nextAuto, now + AUTO_DELAY);
+    lastFrame = performance.now();
+    nextAuto = performance.now() + AUTO_DELAY;
   }
+
   render();
 });
 
 window.addEventListener("pagehide", () => {
   autoOn = false;
-  if (challenge) finishFocus(true);
+
+  if (challenge) {
+    finishFocus(true);
+  }
+
   save();
 
   if (releaseLock) {
@@ -1099,7 +1453,6 @@ window.addEventListener("pageshow", event => {
 
   if (supportsLocks) {
     canPlay = false;
-    // Allow the previous lock request to finish releasing first.
     setTimeout(acquireLock, 0);
   } else {
     reloadProgress();
@@ -1107,37 +1460,44 @@ window.addEventListener("pageshow", event => {
   }
 });
 
-// Best-effort synchronization where browser locks are unavailable.
 window.addEventListener("storage", event => {
-  if (supportsLocks ||
-      (event.key !== SAVE_KEY && event.key !== null)) return;
+  if (
+    supportsLocks ||
+    (event.key !== SAVE_KEY && event.key !== null)
+  ) {
+    return;
+  }
 
   autoOn = false;
   challenge = null;
   reloadProgress();
 
-  $("notice").textContent = storageWarning ||
-    "Progress updated from another tab. Please play in one tab only.";
+  $("notice").textContent =
+    storageWarning || "Progress updated from another tab.";
 
   render();
 });
 
-// ---------- Main loop ----------
+/* Animation loop */
 
 function frame(now) {
   if (!document.hidden && canPlay) {
     if (challenge) {
       const stalled = lastFrame > 0 && now - lastFrame > 250;
-      const expired = now - challenge.started >= challenge.duration;
+      const expired =
+        now - challenge.started >= challenge.duration;
 
       if (stalled || expired) {
         finishFocus(true);
       } else {
-        $("needle").style.left = `${focusPosition(now) * 100}%`;
+        $("needle").style.left =
+          `${focusPosition(now) * 100}%`;
       }
     }
 
-    if (autoOn && !challenge && now >= nextAuto) roll(true);
+    if (autoOn && !challenge && now >= nextAuto) {
+      roll(true);
+    }
   }
 
   if (now - lastButtonPaint >= 100) {
@@ -1150,9 +1510,12 @@ function frame(now) {
 }
 
 $("notice").textContent = storageWarning;
+
 render();
 
-if (supportsLocks) acquireLock();
+if (supportsLocks) {
+  acquireLock();
+}
 
 requestAnimationFrame(frame);
 </script>

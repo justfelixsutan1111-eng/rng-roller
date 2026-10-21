@@ -6,6 +6,8 @@ Hope you enjoy i guess…
 
 https://justfelixsutan1111-eng.github.io/rng-roller/
 
+while ur at it, follow us on insta: https://www.instagram.com/rngroller?exln=MTVwN2w2M2NxMzBnZQ%3D%3D&utm_source=qr
+
 # Credits
 
 ### Playtesters

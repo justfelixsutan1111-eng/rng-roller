@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#10111b">
-  <title>RNG Game — Update 0.2 Beta - Improving</title>
+  <title>RNG Roller — Update 0.3 Beta - Name Change</title>
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
 </head>
@@ -13,27 +13,23 @@
     <header class="header">
       <div>
         <div class="eyebrow">A LITTLE SKILL. A LOT OF LUCK.</div>
-        <h1>RNG<span>Game</span></h1>
-        <p class="subtitle">Update 0.2 Beta - Improving</p>
+        <h1>RNG<span>Roller</span></h1>
+        <p class="subtitle">Update 0.3 Beta - Name Change</p>
       </div>
       <span class="beta-tag">BETA</span>
     </header>
 
     <nav class="navigation" aria-label="Main navigation">
-      <button type="button" data-page="game" aria-current="page"
-        aria-controls="page-game">Game</button>
-      <button type="button" data-page="stats"
-        aria-controls="page-stats">Statistics</button>
-      <button type="button" data-page="changelog"
-        aria-controls="page-changelog">Changelog</button>
-      <button type="button" data-page="settings"
-        aria-controls="page-settings">Settings</button>
+      <button type="button" data-page="game" aria-current="page" aria-controls="page-game">Game</button>
+      <button type="button" data-page="stats" aria-controls="page-stats">Statistics</button>
+      <button type="button" data-page="changelog" aria-controls="page-changelog">Changelog</button>
+      <button type="button" data-page="settings" aria-controls="page-settings">Settings</button>
     </nav>
 
     <div class="resource-bar" aria-label="Resources">
       <div class="resource">
-        <span class="resource-label">COINS</span>
-        <strong id="coins" class="gold">0</strong>
+        <span class="resource-label">MONEY</span>
+        <strong id="coins" class="gold">$0</strong>
       </div>
       <div class="resource">
         <span class="resource-label">LUCK</span>
@@ -59,31 +55,27 @@
               <span id="rollMode" class="pill">Manual</span>
             </div>
 
-            <div class="reveal" aria-live="polite" aria-atomic="true">
+            <div id="reveal" class="reveal" aria-live="polite" aria-atomic="true">
               <span class="result-label">YOUR DROP</span>
               <div id="rarity">Ready?</div>
               <p id="reward">Your next roll is one click away.</p>
             </div>
 
             <div class="roll-controls">
-              <button id="roll" type="button" class="primary big-button">
-                Roll
-              </button>
-              <button id="auto" type="button" class="auto-button">
-                Auto roll · 250 coins
-              </button>
+              <button id="roll" type="button" class="primary big-button">Roll</button>
+              <button id="auto" type="button" class="auto-button">Auto roll · $1,000</button>
             </div>
 
             <div class="roll-footer">
               <span>No manual cooldown</span>
-              <span id="autoInfo">Auto: 1.8s · 40% coins</span>
+              <span id="autoInfo">Auto: 0.90s · 100% money</span>
             </div>
           </section>
 
           <section class="panel" aria-labelledby="collection-heading">
             <div class="section-heading">
               <h2 id="collection-heading">Collection</h2>
-              <span id="collectionProgress" class="small-text">0 / 6</span>
+              <span id="collectionProgress" class="small-text">0 / 10</span>
             </div>
             <div id="collection" class="collection"></div>
           </section>
@@ -110,12 +102,9 @@
               <div id="needle"></div>
             </div>
 
-            <button id="focus" type="button" class="focus-button">
-              Start focus
-            </button>
+            <button id="focus" type="button" class="focus-button">Start focus</button>
 
-            <p id="focusMessage" class="focus-message"
-              role="status" aria-live="polite">
+            <p id="focusMessage" class="focus-message" role="status" aria-live="polite">
               Stop the needle in the green zone.
             </p>
             <div class="small-text">Boosts apply to all rolls.</div>
@@ -132,21 +121,64 @@
       </div>
     </div>
 
-    <section id="page-stats" class="page panel"
-      aria-labelledby="stats-heading" tabindex="-1" hidden>
-      <div class="section-heading">
-        <h2 id="stats-heading">Statistics</h2>
-        <span class="pill">Lifetime</span>
+    <section id="page-stats" class="page" aria-labelledby="stats-heading" tabindex="-1" hidden>
+      <div class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">PERFORMANCE &amp; ECONOMY</span>
+            <h2 id="stats-heading">Statistics</h2>
+          </div>
+          <span class="pill">Lifetime</span>
+        </div>
+
+        <div id="statsHighlights" class="stats-highlights"></div>
       </div>
-      <dl id="stats" class="stats"></dl>
+
+      <div class="stats-grid">
+        <section class="panel" aria-labelledby="stats-economy-heading">
+          <div class="section-heading">
+            <h3 id="stats-economy-heading">Rolling &amp; Money</h3>
+            <span class="small-text">Economy</span>
+          </div>
+          <dl id="statsEconomy" class="stats"></dl>
+        </section>
+
+        <section class="panel" aria-labelledby="stats-skill-heading">
+          <div class="section-heading">
+            <h3 id="stats-skill-heading">Focus &amp; Modifiers</h3>
+            <span class="small-text">Skill &amp; Speed</span>
+          </div>
+          <dl id="statsSkill" class="stats"></dl>
+        </section>
+      </div>
+
+      <section class="panel stats-breakdown-panel" aria-labelledby="stats-breakdown-heading">
+        <div class="section-heading">
+          <h3 id="stats-breakdown-heading">Rarity Breakdown</h3>
+          <span class="small-text">Roll distribution</span>
+        </div>
+        <div id="statsBreakdown" class="stats-breakdown"></div>
+      </section>
     </section>
 
-    <section id="page-changelog" class="page panel"
-      aria-labelledby="changelog-heading" tabindex="-1" hidden>
+    <section id="page-changelog" class="page panel" aria-labelledby="changelog-heading" tabindex="-1" hidden>
       <h2 id="changelog-heading">Changelog</h2>
 
       <article class="release">
         <span class="release-tag">LATEST</span>
+        <h3>Update 0.3 Beta - Name Change</h3>
+        <ul>
+          <li>Renamed the game from RNG Game to <strong>RNG Roller</strong>.</li>
+          <li>Replaced Coins with <strong>Money ($)</strong> across all rewards, upgrades, and stats.</li>
+          <li>Removed the 40% auto roll penalty — auto rolls now award 100% money.</li>
+          <li>Rebalanced Auto Roll: base interval is now 0.90s (down to 0.30s) and costs $1,000.</li>
+          <li>Added a roll reveal animation and a setting to turn it on or off.</li>
+          <li>Expanded Collection to 10 rarities and increased higher-tier rarity chances.</li>
+          <li>Revamped the Statistics page with highlight cards, categorized metrics, and rarity distribution bars.</li>
+        </ul>
+      </article>
+
+      <article class="release">
         <h3>Update 0.2 Beta - Improving</h3>
         <ul>
           <li>Auto roll now applies and consumes Focus boosts.</li>
@@ -177,30 +209,27 @@
       </article>
     </section>
 
-    <section id="page-settings" class="page panel"
-      aria-labelledby="settings-heading" tabindex="-1" hidden>
+    <section id="page-settings" class="page panel" aria-labelledby="settings-heading" tabindex="-1" hidden>
       <h2 id="settings-heading">Settings</h2>
 
       <div class="setting">
+        <label id="rollAnimationLabel">Roll animation</label>
+        <button type="button" class="toggle" data-setting="rollAnimation" aria-labelledby="rollAnimationLabel" aria-pressed="true">On</button>
+      </div>
+
+      <div class="setting">
         <label id="confirmResetLabel">Confirm reset</label>
-        <button type="button" class="toggle"
-          data-setting="confirmReset"
-          aria-labelledby="confirmResetLabel" aria-pressed="true">On</button>
+        <button type="button" class="toggle" data-setting="confirmReset" aria-labelledby="confirmResetLabel" aria-pressed="true">On</button>
       </div>
 
       <div class="setting">
         <label id="reducedMotionLabel">Reduced motion</label>
-        <button type="button" class="toggle"
-          data-setting="reducedMotion"
-          aria-labelledby="reducedMotionLabel" aria-pressed="false">Off</button>
+        <button type="button" class="toggle" data-setting="reducedMotion" aria-labelledby="reducedMotionLabel" aria-pressed="false">Off</button>
       </div>
 
       <div class="setting">
         <label id="pauseOutsideGameLabel">Pause auto outside Game</label>
-        <button type="button" class="toggle"
-          data-setting="pauseOutsideGame"
-          aria-labelledby="pauseOutsideGameLabel"
-          aria-pressed="false">Off</button>
+        <button type="button" class="toggle" data-setting="pauseOutsideGame" aria-labelledby="pauseOutsideGameLabel" aria-pressed="false">Off</button>
       </div>
 
       <div class="reset-row">

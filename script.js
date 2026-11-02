@@ -2,25 +2,30 @@
 
 const $ = id => document.getElementById(id);
 
-// Keep the existing key so Update 0.15 progress can be migrated.
+// Keep the existing key so Update 0.15 and 0.2 progress can be migrated.
 const SAVE_KEY = "rng-game-convenience-015";
 const LOCK_KEY = SAVE_KEY + "-active-tab";
 
-const AUTO_COST = 250;
+const AUTO_COST = 1000;
+const LEGACY_AUTO_COST = 250;
 const FOCUS_DELAY = 12000;
-const BASE_AUTO_DELAY = 1800;
-const AUTO_SPEED_STEP = 120;
+const BASE_AUTO_DELAY = 900;
+const AUTO_SPEED_STEP = 60;
 const MAX_SPEED = 10;
 const MAX_FOCUS = 5;
 const SAFE_MAX = Number.MAX_SAFE_INTEGER;
 
 const rarities = [
-  { name: "Common", weight: 800000, coins: 3, color: "#c4cede" },
-  { name: "Uncommon", weight: 170000, coins: 6, color: "#78e8be" },
-  { name: "Rare", weight: 27000, coins: 15, color: "#7bbdff" },
-  { name: "Epic", weight: 2800, coins: 50, color: "#be9cff" },
-  { name: "Legendary", weight: 190, coins: 200, color: "#ffd48a" },
-  { name: "Mythic", weight: 10, coins: 1500, color: "#ff98c8" }
+  { name: "Common", weight: 680000, coins: 3, color: "#c4cede" },
+  { name: "Uncommon", weight: 210000, coins: 6, color: "#78e8be" },
+  { name: "Rare", weight: 75000, coins: 15, color: "#7bbdff" },
+  { name: "Epic", weight: 24000, coins: 45, color: "#be9cff" },
+  { name: "Legendary", weight: 7500, coins: 140, color: "#ffd48a" },
+  { name: "Mythic", weight: 2400, coins: 450, color: "#ff98c8" },
+  { name: "Exotic", weight: 750, coins: 1200, color: "#ff6b8b" },
+  { name: "Divine", weight: 240, coins: 3500, color: "#7af0ff" },
+  { name: "Celestial", weight: 90, coins: 10000, color: "#a38bff" },
+  { name: "Transcendent", weight: 20, coins: 35000, color: "#fff099" }
 ];
 
 const upgradeDefinitions = [
@@ -30,6 +35,13 @@ const upgradeDefinitions = [
 ];
 
 const settingsKeys = [
+  "rollAnimation",
+  "confirmReset",
+  "reducedMotion",
+  "pauseOutsideGame"
+];
+
+const legacySettingsKeys = [
   "confirmReset",
   "reducedMotion",
   "pauseOutsideGame"
@@ -56,12 +68,36 @@ let unlock = null;
 const collectionViews = [];
 const upgradeViews = new Map();
 const statsViews = new Map();
+const highlightViews = new Map();
+const breakdownViews = [];
+
+/* ---------- Formatting helpers ---------- */
+
+function formatMoney(value) {
+  return `$${value.toLocaleString()}`;
+}
+
+function formatInterval(ms) {
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function formatLuck(value) {
+  return `${Number(value.toFixed(2)).toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2
+  })}×`;
+}
+
+function formatChance(probability) {
+  const percent = probability * 100;
+  return `${percent.toFixed(percent < 0.1 ? 4 : 2)}% chance`;
+}
 
 /* ---------- Costs and save validation ---------- */
 
 function freshSave() {
   return {
-    version: 3,
+    version: 4,
     coins: 0,
     earned: 0,
     manual: 0,
@@ -74,6 +110,7 @@ function freshSave() {
     focusReady: 0,
     autoOwned: false,
     settings: {
+      rollAnimation: true,
       confirmReset: true,
       reducedMotion: false,
       pauseOutsideGame: false
@@ -83,7 +120,7 @@ function freshSave() {
       speed: 0,
       focus: 0
     },
-    collection: [0, 0, 0, 0, 0, 0]
+    collection: new Array(rarities.length).fill(0)
   };
 }
 
@@ -104,14 +141,12 @@ function upgradePrice(key, levels = state.levels) {
   }
 }
 
-function spentTotal(saved) {
+function spentTotal(saved, autoCost = AUTO_COST) {
   const level = saved.levels.luck;
-
-  // Sum of 120, 180, 240, ... for all purchased Luck levels.
   let spent = 30 * level * (level + 3);
   if (!integer(spent)) return NaN;
 
-  spent += saved.autoOwned ? AUTO_COST : 0;
+  spent += saved.autoOwned ? autoCost : 0;
 
   for (let i = 0; i < saved.levels.speed; i++) {
     spent += Math.ceil(150 * 1.7 ** i);
@@ -124,7 +159,11 @@ function spentTotal(saved) {
   return integer(spent) ? spent : NaN;
 }
 
-function validCommon(saved) {
+function validCommon(
+  saved,
+  expectedCollectionLength = rarities.length,
+  requiredSettings = settingsKeys
+) {
   if (!saved || typeof saved !== "object") return false;
 
   const fields = [
@@ -135,12 +174,12 @@ function validCommon(saved) {
   if (!fields.every(key => integer(saved[key]))) return false;
   if (typeof saved.autoOwned !== "boolean") return false;
 
-  if (!saved.settings || !settingsKeys.every(key =>
+  if (!saved.settings || !requiredSettings.every(key =>
     typeof saved.settings[key] === "boolean"
   )) return false;
 
   if (!Array.isArray(saved.collection) ||
-      saved.collection.length !== rarities.length ||
+      saved.collection.length !== expectedCollectionLength ||
       !saved.collection.every(integer)) return false;
 
   const rolls = saved.manual + saved.automatic;
@@ -167,7 +206,7 @@ function validCommon(saved) {
 }
 
 function validSave(saved) {
-  if (!validCommon(saved) || saved.version !== 3) return false;
+  if (!validCommon(saved) || saved.version !== 4) return false;
 
   const levels = saved.levels;
   if (!levels || !integer(levels.luck) ||
@@ -184,47 +223,92 @@ function validSave(saved) {
 }
 
 function migrateLegacy(saved) {
-  if (!validCommon(saved) || saved.version !== 2) return null;
+  if (!saved || typeof saved !== "object") return null;
 
-  const levels = saved.levels;
+  if (saved.version === 2) {
+    if (!validCommon(saved, 6, legacySettingsKeys)) return null;
 
-  if (!levels || !integer(levels.luck) ||
-      !integer(levels.income) || !integer(levels.focus) ||
-      levels.luck > 8 || levels.income > 8 ||
-      levels.focus > MAX_FOCUS) return null;
+    const levels = saved.levels;
+    if (!levels || !integer(levels.luck) ||
+        !integer(levels.income) || !integer(levels.focus) ||
+        levels.luck > 8 || levels.income > 8 ||
+        levels.focus > MAX_FOCUS) return null;
 
-  let oldSpent = saved.autoOwned ? AUTO_COST : 0;
+    let oldSpent = saved.autoOwned ? LEGACY_AUTO_COST : 0;
+    const oldUpgrades = [
+      { key: "luck", base: 120, growth: 1.9 },
+      { key: "income", base: 100, growth: 1.85 },
+      { key: "focus", base: 150, growth: 2 }
+    ];
 
-  const oldUpgrades = [
-    { key: "luck", base: 120, growth: 1.9 },
-    { key: "income", base: 100, growth: 1.85 },
-    { key: "focus", base: 150, growth: 2 }
-  ];
-
-  for (const upgrade of oldUpgrades) {
-    for (let i = 0; i < levels[upgrade.key]; i++) {
-      oldSpent += Math.ceil(upgrade.base * upgrade.growth ** i);
+    for (const upgrade of oldUpgrades) {
+      for (let i = 0; i < levels[upgrade.key]; i++) {
+        oldSpent += Math.ceil(upgrade.base * upgrade.growth ** i);
+      }
     }
+
+    if (saved.earned - oldSpent !== saved.coins) return null;
+
+    const adjustedEarned = saved.earned + (saved.autoOwned ? AUTO_COST - LEGACY_AUTO_COST : 0);
+    const paddedCollection = [...saved.collection];
+    while (paddedCollection.length < rarities.length) paddedCollection.push(0);
+
+    const migrated = {
+      ...saved,
+      version: 4,
+      earned: adjustedEarned,
+      settings: {
+        rollAnimation: true,
+        ...saved.settings
+      },
+      levels: {
+        luck: levels.luck,
+        speed: 0,
+        focus: levels.focus
+      },
+      collection: paddedCollection
+    };
+
+    migrated.coins = migrated.earned - spentTotal(migrated);
+    return validSave(migrated) ? migrated : null;
   }
 
-  if (saved.earned - oldSpent !== saved.coins) return null;
+  if (saved.version === 3) {
+    if (!validCommon(saved, 6, legacySettingsKeys)) return null;
 
-  const migrated = {
-    ...saved,
-    version: 3,
-    settings: { ...saved.settings },
-    levels: {
-      luck: levels.luck,
-      speed: 0,
-      focus: levels.focus
-    },
-    collection: [...saved.collection]
-  };
+    const levels = saved.levels;
+    if (!levels || !integer(levels.luck) ||
+        !integer(levels.speed) || !integer(levels.focus) ||
+        levels.speed > MAX_SPEED || levels.focus > MAX_FOCUS) return null;
 
-  // Refund removed Coin Bonus costs and the difference in Luck costs.
-  migrated.coins = migrated.earned - spentTotal(migrated);
+    const oldSpent = spentTotal(saved, LEGACY_AUTO_COST);
+    if (!integer(oldSpent) || saved.earned - oldSpent !== saved.coins) return null;
 
-  return validSave(migrated) ? migrated : null;
+    const adjustedEarned = saved.earned + (saved.autoOwned ? AUTO_COST - LEGACY_AUTO_COST : 0);
+    const paddedCollection = [...saved.collection];
+    while (paddedCollection.length < rarities.length) paddedCollection.push(0);
+
+    const migrated = {
+      ...saved,
+      version: 4,
+      earned: adjustedEarned,
+      settings: {
+        rollAnimation: true,
+        ...saved.settings
+      },
+      levels: {
+        luck: levels.luck,
+        speed: levels.speed,
+        focus: levels.focus
+      },
+      collection: paddedCollection
+    };
+
+    migrated.coins = migrated.earned - spentTotal(migrated);
+    return validSave(migrated) ? migrated : null;
+  }
+
+  return null;
 }
 
 function loadSave() {
@@ -239,7 +323,7 @@ function loadSave() {
 
     const migrated = migrateLegacy(saved);
     if (migrated) {
-      storageMessage = "Save updated for 0.2. Upgrade cost differences refunded.";
+      storageMessage = "Save updated for 0.3. Progress migrated to RNG Roller.";
       return migrated;
     }
 
@@ -278,7 +362,6 @@ function changed(immediate = false) {
   if (immediate) {
     saveNow();
   } else if (saveTimer === null) {
-    // Throttle writes without delaying them forever during rapid clicking.
     saveTimer = setTimeout(saveNow, 150);
   }
 }
@@ -301,8 +384,6 @@ function totalLuck() {
 
 function rarityWeights() {
   const luck = totalLuck();
-
-  // Both roll modes now use the same luck and Focus rules.
   return rarities.map((rarity, index) =>
     rarity.weight * (index === 0 ? 1 : luck)
   );
@@ -324,16 +405,8 @@ function autoDelay() {
   return BASE_AUTO_DELAY - state.levels.speed * AUTO_SPEED_STEP;
 }
 
-function formatLuck(value) {
-  return `${Number(value.toFixed(2)).toLocaleString(undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 2
-  })}×`;
-}
-
-function formatChance(probability) {
-  const percent = probability * 100;
-  return `${percent.toFixed(percent < 0.1 ? 4 : 2)}% chance`;
+function focusWidthPercent() {
+  return (0.085 + state.levels.focus * 0.006) * 100;
 }
 
 /* ---------- Build persistent controls ---------- */
@@ -344,14 +417,23 @@ function buildCollection() {
     card.className = "item";
     card.style.setProperty("--rarity-color", rarity.color);
 
+    const header = document.createElement("div");
+    header.className = "item-header";
+
     const name = document.createElement("strong");
     name.textContent = rarity.name;
+
+    const value = document.createElement("span");
+    value.className = "item-value";
+    value.textContent = formatMoney(rarity.coins);
+
+    header.append(name, value);
 
     const count = document.createElement("span");
     const odds = document.createElement("span");
     odds.className = "item-odds";
 
-    card.append(name, count, odds);
+    card.append(header, count, odds);
     $("collection").append(card);
     collectionViews.push({ count, odds });
   }
@@ -385,30 +467,95 @@ function buildUpgrades() {
 }
 
 function buildStats() {
-  const rows = [
-    ["total", "Total rolls"],
+  const highlightDefs = [
+    ["rolls", "TOTAL ROLLS"],
+    ["lifetime", "LIFETIME MONEY"],
+    ["best", "BEST RARITY"],
+    ["luck", "CURRENT LUCK"]
+  ];
+
+  for (const [key, label] of highlightDefs) {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+
+    const title = document.createElement("span");
+    title.className = "stat-card-label";
+    title.textContent = label;
+
+    const value = document.createElement("strong");
+    value.className = "stat-card-value";
+
+    const sub = document.createElement("span");
+    sub.className = "stat-card-sub";
+
+    card.append(title, value, sub);
+    $("statsHighlights").append(card);
+    highlightViews.set(key, { value, sub });
+  }
+
+  const economyRows = [
     ["manual", "Manual rolls"],
     ["automatic", "Auto rolls"],
-    ["best", "Best rarity"],
-    ["earned", "Lifetime coins"],
+    ["currentMoney", "Current money"],
+    ["spentMoney", "Money spent"],
+    ["avgRoll", "Average per roll"],
+    ["speed", "Auto interval"]
+  ];
+
+  const skillRows = [
     ["attempts", "Focus attempts"],
     ["focusHits", "Focus hits"],
     ["perfects", "Perfect hits"],
     ["rate", "Focus success"],
-    ["baseLuck", "Base luck"],
-    ["totalLuck", "Current luck"],
-    ["speed", "Auto interval"]
+    ["perfectRate", "Perfect rate"],
+    ["focusWidth", "Focus zone width"]
   ];
 
-  for (const [key, label] of rows) {
-    const row = document.createElement("div");
-    const title = document.createElement("dt");
-    const value = document.createElement("dd");
+  function populateList(container, rows) {
+    for (const [key, label] of rows) {
+      const row = document.createElement("div");
+      const title = document.createElement("dt");
+      const value = document.createElement("dd");
 
-    title.textContent = label;
-    row.append(title, value);
-    $("stats").append(row);
-    statsViews.set(key, value);
+      title.textContent = label;
+      row.append(title, value);
+      container.append(row);
+      statsViews.set(key, value);
+    }
+  }
+
+  populateList($("statsEconomy"), economyRows);
+  populateList($("statsSkill"), skillRows);
+
+  for (const rarity of rarities) {
+    const row = document.createElement("div");
+    row.className = "breakdown-row";
+
+    const top = document.createElement("div");
+    top.className = "breakdown-top";
+
+    const name = document.createElement("span");
+    name.className = "breakdown-name";
+    name.style.color = rarity.color;
+    name.textContent = `${rarity.name} (${formatMoney(rarity.coins)})`;
+
+    const meta = document.createElement("span");
+    meta.className = "breakdown-meta";
+
+    top.append(name, meta);
+
+    const bar = document.createElement("div");
+    bar.className = "breakdown-bar";
+
+    const fill = document.createElement("div");
+    fill.className = "breakdown-fill";
+    fill.style.background = rarity.color;
+
+    bar.append(fill);
+    row.append(top, bar);
+    $("statsBreakdown").append(row);
+
+    breakdownViews.push({ meta, fill });
   }
 }
 
@@ -434,7 +581,7 @@ function renderButtons() {
 
   $("auto").textContent = state.autoOwned
     ? `Auto roll: ${autoOn ? "On" : "Off"}`
-    : `Auto roll · ${AUTO_COST} coins`;
+    : `Auto roll · ${formatMoney(AUTO_COST)}`;
 
   $("auto").setAttribute("aria-pressed", String(autoOn));
 
@@ -472,16 +619,17 @@ function renderUpgrades() {
         `Lv. ${level.toLocaleString()} · ${formatLuck(baseLuck())} · +0.1×`;
     } else if (key === "speed") {
       view.detail.textContent =
-        `${level}/${MAX_SPEED} · ${(autoDelay() / 1000).toFixed(1)}s`;
+        `${level}/${MAX_SPEED} · ${formatInterval(autoDelay())}`;
     } else {
-      view.detail.textContent = `${level}/${MAX_FOCUS}`;
+      view.detail.textContent =
+        `${level}/${MAX_FOCUS} · ${focusWidthPercent().toFixed(1)}% zone`;
     }
 
     view.buy.textContent = upgradeMaxed(key)
       ? "Maxed"
       : key === "speed" && !state.autoOwned
         ? "Unlock auto first"
-        : `${upgradePrice(key).toLocaleString()} coins`;
+        : formatMoney(upgradePrice(key));
   }
 }
 
@@ -502,35 +650,80 @@ function renderCollection() {
 }
 
 function renderStats() {
-  let best = "None";
+  const totalRolls = state.manual + state.automatic;
+  const spent = Math.max(0, state.earned - state.coins);
 
+  let bestIndex = -1;
   for (let i = rarities.length - 1; i >= 0; i--) {
     if (state.collection[i] > 0) {
-      best = rarities[i].name;
+      bestIndex = i;
       break;
     }
   }
 
+  const bestRarity = bestIndex >= 0 ? rarities[bestIndex] : null;
+  const autoShare = totalRolls > 0
+    ? `${((state.automatic / totalRolls) * 100).toFixed(0)}% auto`
+    : "0% auto";
+
+  const rollsCard = highlightViews.get("rolls");
+  rollsCard.value.textContent = totalRolls.toLocaleString();
+  rollsCard.sub.textContent = `${state.manual.toLocaleString()} manual · ${autoShare}`;
+
+  const lifetimeCard = highlightViews.get("lifetime");
+  lifetimeCard.value.textContent = formatMoney(state.earned);
+  lifetimeCard.value.style.color = "var(--gold)";
+  lifetimeCard.sub.textContent = `${formatMoney(state.coins)} wallet · ${formatMoney(spent)} spent`;
+
+  const bestCard = highlightViews.get("best");
+  bestCard.value.textContent = bestRarity ? bestRarity.name : "None";
+  bestCard.value.style.color = bestRarity ? bestRarity.color : "var(--text)";
+  bestCard.sub.textContent = bestRarity
+    ? `${state.collection[bestIndex].toLocaleString()} found · ${formatMoney(bestRarity.coins)} drop`
+    : "Roll to discover rarities";
+
+  const luckCard = highlightViews.get("luck");
+  luckCard.value.textContent = formatLuck(totalLuck());
+  luckCard.value.style.color = "var(--mint)";
+  luckCard.sub.textContent = state.charges > 0
+    ? `Base ${formatLuck(baseLuck())} · ${state.multiplier}× Focus (${state.charges} left)`
+    : `Base ${formatLuck(baseLuck())} · Focus inactive`;
+
   const values = {
-    total: (state.manual + state.automatic).toLocaleString(),
     manual: state.manual.toLocaleString(),
     automatic: state.automatic.toLocaleString(),
-    best,
-    earned: state.earned.toLocaleString(),
+    currentMoney: formatMoney(state.coins),
+    spentMoney: formatMoney(spent),
+    avgRoll: totalRolls > 0
+      ? `$${(state.earned / totalRolls).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}`
+      : "$0.00",
+    speed: formatInterval(autoDelay()),
     attempts: state.attempts.toLocaleString(),
     focusHits: state.focusHits.toLocaleString(),
     perfects: state.perfects.toLocaleString(),
     rate: state.attempts
-      ? `${(state.focusHits / state.attempts * 100).toFixed(1)}%`
+      ? `${((state.focusHits / state.attempts) * 100).toFixed(1)}%`
       : "0%",
-    baseLuck: formatLuck(baseLuck()),
-    totalLuck: formatLuck(totalLuck()),
-    speed: `${(autoDelay() / 1000).toFixed(1)}s`
+    perfectRate: state.attempts
+      ? `${((state.perfects / state.attempts) * 100).toFixed(1)}%`
+      : "0%",
+    focusWidth: `${focusWidthPercent().toFixed(1)}%`
   };
 
   for (const [key, value] of Object.entries(values)) {
     statsViews.get(key).textContent = value;
   }
+
+  breakdownViews.forEach((view, index) => {
+    const count = state.collection[index];
+    const share = totalRolls > 0 ? (count / totalRolls) * 100 : 0;
+
+    view.meta.textContent = `${count.toLocaleString()} (${share.toFixed(share > 0 && share < 0.1 ? 2 : 1)}%)`;
+    view.fill.style.width = `${Math.min(100, share)}%`;
+  });
 }
 
 function renderSettings() {
@@ -547,7 +740,7 @@ function renderSettings() {
 }
 
 function render() {
-  $("coins").textContent = state.coins.toLocaleString();
+  $("coins").textContent = formatMoney(state.coins);
   $("luck").textContent = formatLuck(totalLuck());
 
   $("boost").textContent = state.charges > 0
@@ -565,7 +758,7 @@ function render() {
     : "Manual";
 
   $("autoInfo").textContent =
-    `Auto: ${(autoDelay() / 1000).toFixed(1)}s · 40% coins`;
+    `Auto: ${formatInterval(autoDelay())} · 100% money`;
 
   renderUpgrades();
   renderCollection();
@@ -615,6 +808,19 @@ for (const button of document.querySelectorAll("[data-page]")) {
 
 /* ---------- Rolls ---------- */
 
+function triggerRollAnimation(color) {
+  const reveal = $("reveal");
+  reveal.style.setProperty("--drop-color", color);
+  reveal.classList.remove("roll-animate");
+
+  if (!state.settings.rollAnimation || state.settings.reducedMotion) {
+    return;
+  }
+
+  void reveal.offsetWidth;
+  reveal.classList.add("roll-animate");
+}
+
 function roll(automatic = false) {
   const now = performance.now();
 
@@ -629,12 +835,9 @@ function roll(automatic = false) {
     return;
   }
 
-  // Resolve with the current Focus multiplier before using its charge.
   const index = chooseRarity();
   const rarity = rarities[index];
-  const reward = automatic
-    ? Math.max(1, Math.floor(rarity.coins * 0.4))
-    : rarity.coins;
+  const reward = rarity.coins;
 
   if (state.earned > SAFE_MAX - reward ||
       state.manual + state.automatic >= SAFE_MAX) {
@@ -656,7 +859,6 @@ function roll(automatic = false) {
     state.manual++;
   }
 
-  // Both manual and automatic rolls consume one charge.
   const usedFocus = state.charges > 0;
 
   if (usedFocus) {
@@ -669,7 +871,9 @@ function roll(automatic = false) {
   $("rarity").classList.toggle("rare-result", index >= 3);
 
   $("reward").textContent =
-    `+${reward.toLocaleString()} coins${usedFocus ? " · Focus boosted" : ""}`;
+    `+${formatMoney(reward)}${usedFocus ? " · Focus boosted" : ""}`;
+
+  triggerRollAnimation(rarity.color);
 
   changed();
   render();
@@ -729,7 +933,6 @@ function startFocus() {
 
   if (state.attempts >= SAFE_MAX) return;
 
-  // Keep auto enabled. It pauses during the challenge, then resumes.
   state.attempts++;
   state.focusReady = Date.now() + FOCUS_DELAY;
   focusDeadline = now + FOCUS_DELAY;
@@ -800,7 +1003,6 @@ function finishFocus(forcedMiss = false) {
     $("focusMessage").textContent = "Miss. Nothing lost.";
   }
 
-  // Resume after a full interval, without awarding catch-up rolls.
   nextAuto = now + autoDelay();
 
   changed(true);
@@ -845,6 +1047,10 @@ for (const button of document.querySelectorAll("[data-setting]")) {
       nextAuto = performance.now() + autoDelay();
     }
 
+    if (key === "rollAnimation" && !state.settings.rollAnimation) {
+      $("reveal").classList.remove("roll-animate");
+    }
+
     changed(true);
     render();
   });
@@ -868,6 +1074,7 @@ $("reset").addEventListener("click", event => {
   sessionMessage = "";
   storageMessage = "";
 
+  $("reveal").classList.remove("roll-animate");
   $("rarity").textContent = "Ready?";
   $("rarity").style.color = "";
   $("rarity").classList.remove("rare-result");
@@ -904,7 +1111,6 @@ function activateSave() {
   showNotice();
   render();
 
-  // Persist migrations only after this tab owns the save.
   changed(true);
 }
 
@@ -999,7 +1205,6 @@ window.addEventListener("pageshow", event => {
   acquireOwnership();
 });
 
-// Best-effort synchronization if Web Locks are unavailable.
 window.addEventListener("storage", event => {
   if (useLocks || !canPlay ||
       (event.key !== SAVE_KEY && event.key !== null)) return;

@@ -1,6 +1,6 @@
 # rng-roller
 
-This is a game me and my friends “made”, using GPT 6.1 Sol (not sponsored). This is actually the second attempt, as the first one didnt go too well.
+This is a game me and my friends “made”, using GPT 6.1 Sol and Gemini 4 Argon (not sponsored). This is actually the second attempt, as the first one didnt go too well.
 
 Hope you enjoy i guess…
 

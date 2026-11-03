@@ -1,244 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10111b">
-  <title>RNG Roller — Update 0.3 Beta - Name Change</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RNG Roller — Update 0.35 Beta</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app">
-    <header class="header">
-      <div>
-        <div class="eyebrow">A LITTLE SKILL. A LOT OF LUCK.</div>
-        <h1>RNG<span>Roller</span></h1>
-        <p class="subtitle">Update 0.3 Beta - Name Change</p>
-      </div>
-      <span class="beta-tag">BETA</span>
-    </header>
+<main class="app">
+<header class="header"><div><div class="eyebrow">A LITTLE SKILL. A LOT OF LUCK.</div><h1>RNG<span>Roller</span></h1><p class="subtitle">Update 0.35 Beta - QOL and Convenience 2</p></div><span class="beta-tag">BETA</span></header>
+<nav class="navigation">
+<button type="button" data-page="game" aria-current="page">Game</button>
+<button type="button" data-page="stats">Statistics</button>
+<button type="button" data-page="changelog">Changelog</button>
+<button type="button" data-page="settings">Settings</button>
+</nav>
+<div class="resource-bar">
+<div class="resource"><span class="resource-label">MONEY</span><strong id="coins" class="gold">$0</strong></div>
+<div class="resource"><span class="resource-label">LUCK</span><strong id="luck" class="mint">1.0×</strong></div>
+<div class="resource resource-focus"><span class="resource-label">FOCUS</span><strong id="boost">Inactive</strong></div>
+</div>
+<div id="notice" role="status"></div>
 
-    <nav class="navigation" aria-label="Main navigation">
-      <button type="button" data-page="game" aria-current="page" aria-controls="page-game">Game</button>
-      <button type="button" data-page="stats" aria-controls="page-stats">Statistics</button>
-      <button type="button" data-page="changelog" aria-controls="page-changelog">Changelog</button>
-      <button type="button" data-page="settings" aria-controls="page-settings">Settings</button>
-    </nav>
+<div id="page-game" class="page" tabindex="-1">
+<div class="game-layout">
+<div class="column">
+<section class="panel">
+<div class="section-heading"><div><span class="eyebrow">TRY YOUR LUCK</span><h2>Roll</h2></div><span id="rollMode" class="pill">Manual</span></div>
+<div id="reveal" class="reveal" aria-live="polite"><span id="resultLabel" class="result-label">YOUR DROP</span><div id="rarity">Ready?</div><p id="reward">Your next roll is one click away.</p></div>
+<div class="roll-controls"><button id="roll" type="button" class="primary big-button">Roll</button><button id="auto" type="button" class="auto-button">Auto roll · $1,000</button></div>
+<div class="roll-footer"><span>No manual cooldown</span><span id="autoInfo">Auto: 0.90s · 100% money</span></div>
+</section>
+<section class="panel">
+<div class="section-heading"><div><span class="eyebrow">CLICK A RARITY FOR DETAILS</span><h2>Collection</h2></div><span id="collectionProgress" class="pill">0 / 10</span></div>
+<div id="collection" class="collection"></div>
+<div id="collectionInfo" class="collection-info" hidden>
+<div class="collection-info-header"><div><span id="infoTier" class="eyebrow">TIER 1</span><h3 id="infoName">???</h3></div><button id="closeInfo" type="button" class="small-button">Close</button></div>
+<dl class="collection-info-grid">
+<div><dt>Money value</dt><dd id="infoValue">???</dd></div>
+<div><dt>Current odds</dt><dd id="infoOdds">0%</dd></div>
+<div><dt>Times found</dt><dd id="infoCount">0</dd></div>
+<div><dt>Total earned</dt><dd id="infoEarned">$0</dd></div>
+</dl>
+</div>
+</section>
+</div>
+<div class="column">
+<section class="panel">
+<div class="section-heading"><h2>Focus</h2><span class="pill mint">Skill bonus</span></div>
+<p class="compact-text">Hit: <strong>2×</strong><span class="separator">/</span>Perfect: <strong>3.5×</strong><span class="separator">/</span>5 rolls</p>
+<div class="track"><div id="target"></div><div id="perfect"></div><div id="needle"></div></div>
+<button id="focus" type="button" class="focus-button">Start focus</button>
+<p id="focusMessage" class="focus-message" role="status">Stop the needle in the green zone.</p>
+<div class="small-text">Boosts apply to all rolls.</div>
+</section>
+<section class="panel">
+<div class="section-heading"><h2>Upgrades</h2><span class="small-text">Permanent</span></div>
+<div id="upgrades" class="upgrades"></div>
+</section>
+</div>
+</div>
+</div>
 
-    <div class="resource-bar" aria-label="Resources">
-      <div class="resource">
-        <span class="resource-label">MONEY</span>
-        <strong id="coins" class="gold">$0</strong>
-      </div>
-      <div class="resource">
-        <span class="resource-label">LUCK</span>
-        <strong id="luck" class="mint">1.0×</strong>
-      </div>
-      <div class="resource resource-focus">
-        <span class="resource-label">FOCUS</span>
-        <strong id="boost">Inactive</strong>
-      </div>
-    </div>
+<section id="page-stats" class="page" tabindex="-1" hidden>
+<div class="panel"><div class="section-heading"><div><span class="eyebrow">PERFORMANCE &amp; ECONOMY</span><h2>Statistics</h2></div><span class="pill">Lifetime</span></div><div id="statsHighlights" class="stats-highlights"></div></div>
+<div class="stats-grid">
+<section class="panel"><div class="section-heading"><h3>Rolling &amp; Money</h3><span class="small-text">Economy</span></div><dl id="statsEconomy" class="stats"></dl></section>
+<section class="panel"><div class="section-heading"><h3>Focus &amp; Modifiers</h3><span class="small-text">Skill &amp; Speed</span></div><dl id="statsSkill" class="stats"></dl></section>
+</div>
+<section class="panel stats-breakdown-panel"><div class="section-heading"><h3>Rarity Breakdown</h3><span class="small-text">Roll distribution</span></div><div id="statsBreakdown" class="stats-breakdown"></div></section>
+</section>
 
-    <div id="notice" role="status"></div>
+<section id="page-changelog" class="page panel" tabindex="-1" hidden>
+<h2>Changelog</h2>
+<article class="release"><span class="release-tag">LATEST</span><h3>Update 0.35 Beta - QOL and Convenience 2</h3>
+<ul>
+<li>Configurable <strong>Auto-stop on rare drops</strong> with a special reveal celebration.</li>
+<li><strong>Buy Max</strong> button for the Luck upgrade.</li>
+<li>Undiscovered rarities show as <strong>???</strong> until unlocked.</li>
+<li>Click any rarity to open the detailed info inspector.</li>
+<li>Settings reorganized into categorized cards.</li>
+</ul></article>
+<article class="release"><h3>Update 0.3 Beta - Name Change</h3>
+<ul>
+<li>Renamed to <strong>RNG Roller</strong>; Coins became <strong>Money ($)</strong>.</li>
+<li>Auto rolls award 100% money; Auto Roll costs $1,000.</li>
+<li>Expanded to 10 rarities and revamped Statistics.</li>
+</ul></article>
+</section>
 
-    <div id="page-game" class="page" tabindex="-1">
-      <div class="game-layout">
-        <div class="column">
-          <section class="panel roll-panel" aria-labelledby="roll-heading">
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">TRY YOUR LUCK</span>
-                <h2 id="roll-heading">Roll</h2>
-              </div>
-              <span id="rollMode" class="pill">Manual</span>
-            </div>
+<section id="page-settings" class="page" tabindex="-1" hidden>
+<div class="panel"><div class="section-heading"><div><span class="eyebrow">PREFERENCES &amp; CONTROLS</span><h2>Settings</h2></div><span class="pill">Saved automatically</span></div></div>
+<div class="settings-grid">
+<section class="panel">
+<div class="section-heading"><h3>Automation &amp; Gameplay</h3><span class="small-text">Roll behavior</span></div>
+<div class="setting"><div class="setting-copy"><label id="l1">Auto-stop on rarity</label><span class="setting-desc">Stops Auto Roll and plays a special flare when you pull at least this rarity.</span></div><button id="autoStopButton" type="button" class="cycle-button" aria-labelledby="l1">Mythic+</button></div>
+<div class="setting"><div class="setting-copy"><label id="l2">Pause auto outside Game</label><span class="setting-desc">Pauses Auto Roll while viewing Statistics, Changelog, or Settings.</span></div><button type="button" class="toggle" data-setting="pauseOutsideGame" aria-labelledby="l2" aria-pressed="false">Off</button></div>
+</section>
+<section class="panel">
+<div class="section-heading"><h3>Visuals &amp; Accessibility</h3><span class="small-text">Effects &amp; motion</span></div>
+<div class="setting"><div class="setting-copy"><label id="l3">Roll animation</label><span class="setting-desc">Plays pop and glow transitions on the drop card.</span></div><button type="button" class="toggle" data-setting="rollAnimation" aria-labelledby="l3" aria-pressed="true">On</button></div>
+<div class="setting"><div class="setting-copy"><label id="l4">Reduced motion</label><span class="setting-desc">Disables all animations and transitions.</span></div><button type="button" class="toggle" data-setting="reducedMotion" aria-labelledby="l4" aria-pressed="false">Off</button></div>
+</section>
+</div>
+<section class="panel settings-danger-panel">
+<div class="section-heading"><h3>Data &amp; Safety</h3><span class="small-text">Save management</span></div>
+<div class="setting"><div class="setting-copy"><label id="l5">Confirm reset</label><span class="setting-desc">Shows a confirmation prompt before wiping your save.</span></div><button type="button" class="toggle" data-setting="confirmReset" aria-labelledby="l5" aria-pressed="true">On</button></div>
+<div class="reset-row"><div class="setting-copy"><strong>Reset all progress</strong><span class="setting-desc">Permanently deletes money, upgrades, collection, and stats.</span></div><button id="reset" type="button" class="danger">Reset progress</button></div>
+</section>
+</section>
+<footer>Saved in this browser · No offline rewards</footer>
+</main>
 
-            <div id="reveal" class="reveal" aria-live="polite" aria-atomic="true">
-              <span class="result-label">YOUR DROP</span>
-              <div id="rarity">Ready?</div>
-              <p id="reward">Your next roll is one click away.</p>
-            </div>
-
-            <div class="roll-controls">
-              <button id="roll" type="button" class="primary big-button">Roll</button>
-              <button id="auto" type="button" class="auto-button">Auto roll · $1,000</button>
-            </div>
-
-            <div class="roll-footer">
-              <span>No manual cooldown</span>
-              <span id="autoInfo">Auto: 0.90s · 100% money</span>
-            </div>
-          </section>
-
-          <section class="panel" aria-labelledby="collection-heading">
-            <div class="section-heading">
-              <h2 id="collection-heading">Collection</h2>
-              <span id="collectionProgress" class="small-text">0 / 10</span>
-            </div>
-            <div id="collection" class="collection"></div>
-          </section>
-        </div>
-
-        <div class="column">
-          <section class="panel" aria-labelledby="focus-heading">
-            <div class="section-heading">
-              <h2 id="focus-heading">Focus</h2>
-              <span class="pill mint-text">Skill bonus</span>
-            </div>
-
-            <p class="compact-text">
-              Hit: <strong>2×</strong>
-              <span class="separator">/</span>
-              Perfect: <strong>3.5×</strong>
-              <span class="separator">/</span>
-              5 rolls
-            </p>
-
-            <div class="track" aria-hidden="true">
-              <div id="target"></div>
-              <div id="perfect"></div>
-              <div id="needle"></div>
-            </div>
-
-            <button id="focus" type="button" class="focus-button">Start focus</button>
-
-            <p id="focusMessage" class="focus-message" role="status" aria-live="polite">
-              Stop the needle in the green zone.
-            </p>
-            <div class="small-text">Boosts apply to all rolls.</div>
-          </section>
-
-          <section class="panel" aria-labelledby="upgrades-heading">
-            <div class="section-heading">
-              <h2 id="upgrades-heading">Upgrades</h2>
-              <span class="small-text">Permanent</span>
-            </div>
-            <div id="upgrades" class="upgrades"></div>
-          </section>
-        </div>
-      </div>
-    </div>
-
-    <section id="page-stats" class="page" aria-labelledby="stats-heading" tabindex="-1" hidden>
-      <div class="panel">
-        <div class="section-heading">
-          <div>
-            <span class="eyebrow">PERFORMANCE &amp; ECONOMY</span>
-            <h2 id="stats-heading">Statistics</h2>
-          </div>
-          <span class="pill">Lifetime</span>
-        </div>
-
-        <div id="statsHighlights" class="stats-highlights"></div>
-      </div>
-
-      <div class="stats-grid">
-        <section class="panel" aria-labelledby="stats-economy-heading">
-          <div class="section-heading">
-            <h3 id="stats-economy-heading">Rolling &amp; Money</h3>
-            <span class="small-text">Economy</span>
-          </div>
-          <dl id="statsEconomy" class="stats"></dl>
-        </section>
-
-        <section class="panel" aria-labelledby="stats-skill-heading">
-          <div class="section-heading">
-            <h3 id="stats-skill-heading">Focus &amp; Modifiers</h3>
-            <span class="small-text">Skill &amp; Speed</span>
-          </div>
-          <dl id="statsSkill" class="stats"></dl>
-        </section>
-      </div>
-
-      <section class="panel stats-breakdown-panel" aria-labelledby="stats-breakdown-heading">
-        <div class="section-heading">
-          <h3 id="stats-breakdown-heading">Rarity Breakdown</h3>
-          <span class="small-text">Roll distribution</span>
-        </div>
-        <div id="statsBreakdown" class="stats-breakdown"></div>
-      </section>
-    </section>
-
-    <section id="page-changelog" class="page panel" aria-labelledby="changelog-heading" tabindex="-1" hidden>
-      <h2 id="changelog-heading">Changelog</h2>
-
-      <article class="release">
-        <span class="release-tag">LATEST</span>
-        <h3>Update 0.3 Beta - Name Change</h3>
-        <ul>
-          <li>Renamed the game from RNG Game to <strong>RNG Roller</strong>.</li>
-          <li>Replaced Coins with <strong>Money ($)</strong> across all rewards, upgrades, and stats.</li>
-          <li>Removed the 40% auto roll penalty — auto rolls now award 100% money.</li>
-          <li>Rebalanced Auto Roll: base interval is now 0.90s (down to 0.30s) and costs $1,000.</li>
-          <li>Added a roll reveal animation and a setting to turn it on or off.</li>
-          <li>Expanded Collection to 10 rarities and increased higher-tier rarity chances.</li>
-          <li>Revamped the Statistics page with highlight cards, categorized metrics, and rarity distribution bars.</li>
-        </ul>
-      </article>
-
-      <article class="release">
-        <h3>Update 0.2 Beta - Improving</h3>
-        <ul>
-          <li>Auto roll now applies and consumes Focus boosts.</li>
-          <li>Luck gains 0.1× per upgrade with no level cap.</li>
-          <li>Coins and Luck now appear below navigation.</li>
-          <li>Simplified collection odds.</li>
-          <li>Replaced Coin Bonus with Auto Speed.</li>
-          <li>Added On/Off settings buttons.</li>
-          <li>Refreshed the design and separated project files.</li>
-        </ul>
-      </article>
-
-      <article class="release">
-        <h3>Update 0.15 Beta - Convenience</h3>
-        <ul>
-          <li>Removed the manual roll cooldown.</li>
-          <li>Reduced auto roll cost to 250 coins.</li>
-          <li>Simplified upgrade names and added Settings.</li>
-        </ul>
-      </article>
-
-      <article class="release">
-        <h3>Update 0.1 Beta - RNG 101</h3>
-        <ul>
-          <li>Introduced rolls, rarities, coins, and upgrades.</li>
-          <li>Added Focus, auto roll, collection, and statistics.</li>
-        </ul>
-      </article>
-    </section>
-
-    <section id="page-settings" class="page panel" aria-labelledby="settings-heading" tabindex="-1" hidden>
-      <h2 id="settings-heading">Settings</h2>
-
-      <div class="setting">
-        <label id="rollAnimationLabel">Roll animation</label>
-        <button type="button" class="toggle" data-setting="rollAnimation" aria-labelledby="rollAnimationLabel" aria-pressed="true">On</button>
-      </div>
-
-      <div class="setting">
-        <label id="confirmResetLabel">Confirm reset</label>
-        <button type="button" class="toggle" data-setting="confirmReset" aria-labelledby="confirmResetLabel" aria-pressed="true">On</button>
-      </div>
-
-      <div class="setting">
-        <label id="reducedMotionLabel">Reduced motion</label>
-        <button type="button" class="toggle" data-setting="reducedMotion" aria-labelledby="reducedMotionLabel" aria-pressed="false">Off</button>
-      </div>
-
-      <div class="setting">
-        <label id="pauseOutsideGameLabel">Pause auto outside Game</label>
-        <button type="button" class="toggle" data-setting="pauseOutsideGame" aria-labelledby="pauseOutsideGameLabel" aria-pressed="false">Off</button>
-      </div>
-
-      <div class="reset-row">
-        <span class="small-text">Deletes all game progress.</span>
-        <button id="reset" type="button" class="danger">Reset progress</button>
-      </div>
-    </section>
-
-    <footer>Saved in this browser · No offline rewards</footer>
-  </main>
+<script src="script.js"></script>
 </body>
 </html>

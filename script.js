@@ -292,41 +292,34 @@
     $("rarity").textContent=r[0];$("rarity").style.color=r[3];
     $("reward").textContent="+"+cash(reward)+(boosted?" · Focus boosted":"");
     $("dropLabel").textContent=stop?"Auto-stop drop":"Your drop";
-    if(i>=CINEMATIC_MIN)startFilm(i,stop);
-    else{
-      if(stop){auto=false;stopped=true;resetClock();}
-      const card = $("card");
+    const card = $("card");
 const name = $("rarity");
 card.style.setProperty("--drop-tone", r[3]);
 
-if (moving() && page === "game" && typeof name.animate === "function") {
-  // A new tap replaces the previous animation instead of stacking effects.
-  for (const effect of name.getAnimations()) effect.cancel();
+if (i >= CINEMATIC_MIN) {
+  startFilm(i, stop); // Rare drops still get the full-screen reveal.
+} else {
+  if (stop) { auto = false; stopped = true; resetClock(); }
 
-  if (isAuto) {
-    // Small movement only: at 12 rolls/sec the name must stay readable.
-    name.animate(
-      [{ transform: "translateY(1.5px)" }, { transform: "translateY(0)" }],
-      { duration: Math.min(100, 800 / cps()), easing: "ease-out" }
-    );
-  } else {
-    name.animate(
-      [
-        { transform: "translateY(7px) scale(.94)", opacity: .72 },
-        { transform: "translateY(-1px) scale(1.035)", opacity: 1, offset: .6 },
-        { transform: "translateY(0) scale(1)", opacity: 1 }
-      ],
-      { duration: 330, easing: "cubic-bezier(.2,.75,.25,1)" }
-    );
+  if (moving() && page === "game" && typeof name.animate === "function") {
+    for (const fx of name.getAnimations()) fx.cancel();
 
-    for (const effect of card.getAnimations()) effect.cancel();
-    card.animate(
-      [{ borderColor: r[3] }, { borderColor: "#c8e9ff45" }],
-      { duration: 460, easing: "ease-out" }
-    );
+    // Finish before the next auto roll; never delay the roll itself.
+    const duration = isAuto ? Math.min(190, 850 / cps()) : 260;
+    const lift = isAuto ? "1px" : "3px";
+
+    name.animate([
+      {
+        transform: `translateY(${lift})`,
+        textShadow: `0 0 9px ${r[3]}70`
+      },
+      {
+        transform: "translateY(0)",
+        textShadow: "0 0 0 transparent"
+      }
+    ], { duration, easing: "ease-out" });
   }
 }
-    }
     changed(stop||!!film);
   }
   $("roll").onclick=()=>{roll();render();};
@@ -434,5 +427,33 @@ if (moving() && page === "game" && typeof name.animate === "function") {
     }
     requestAnimationFrame(frame);
   }
+  const tabBar = document.querySelector('nav[aria-label="Game pages"]');
+
+function alignTab(glide = false) {
+  const tab = tabBar.querySelector('[aria-current="page"]');
+  if (!tab) return;
+
+  const smooth = glide && !s.settings.reducedMotion &&
+    !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  tabBar.classList.toggle("nav-glide", smooth);
+  tabBar.style.setProperty("--tab-x", tab.offsetLeft + "px");
+  tabBar.style.setProperty("--tab-width", tab.offsetWidth + "px");
+
+  // Scroll only the tab strip, not the whole game on iPad.
+  const left = tab.offsetLeft - 5;
+  const right = tab.offsetLeft + tab.offsetWidth + 5;
+  if (left < tabBar.scrollLeft || right > tabBar.scrollLeft + tabBar.clientWidth) {
+    tabBar.scrollTo({
+      left: left < tabBar.scrollLeft ? left : right - tabBar.clientWidth,
+      behavior: smooth ? "smooth" : "auto"
+    });
+  }
+}
+
+// The existing button handler selects the page before this event bubbles up.
+tabBar.addEventListener("click", () => alignTab(true));
+window.addEventListener("resize", () => alignTab(false));
+alignTab(false);
   render();flush();requestAnimationFrame(frame);
 })();

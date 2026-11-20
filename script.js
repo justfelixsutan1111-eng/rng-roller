@@ -295,8 +295,37 @@
     if(i>=CINEMATIC_MIN)startFilm(i,stop);
     else{
       if(stop){auto=false;stopped=true;resetClock();}
-      if(moving() && !isAuto && $("card").animate)
-        $("card").animate([{borderColor:r[3]},{borderColor:"var(--line)"}],{duration:300});
+      const card = $("card");
+const name = $("rarity");
+card.style.setProperty("--drop-tone", r[3]);
+
+if (moving() && page === "game" && typeof name.animate === "function") {
+  // A new tap replaces the previous animation instead of stacking effects.
+  for (const effect of name.getAnimations()) effect.cancel();
+
+  if (isAuto) {
+    // Small movement only: at 12 rolls/sec the name must stay readable.
+    name.animate(
+      [{ transform: "translateY(1.5px)" }, { transform: "translateY(0)" }],
+      { duration: Math.min(100, 800 / cps()), easing: "ease-out" }
+    );
+  } else {
+    name.animate(
+      [
+        { transform: "translateY(7px) scale(.94)", opacity: .72 },
+        { transform: "translateY(-1px) scale(1.035)", opacity: 1, offset: .6 },
+        { transform: "translateY(0) scale(1)", opacity: 1 }
+      ],
+      { duration: 330, easing: "cubic-bezier(.2,.75,.25,1)" }
+    );
+
+    for (const effect of card.getAnimations()) effect.cancel();
+    card.animate(
+      [{ borderColor: r[3] }, { borderColor: "#c8e9ff45" }],
+      { duration: 460, easing: "ease-out" }
+    );
+  }
+}
     }
     changed(stop||!!film);
   }

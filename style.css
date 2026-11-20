@@ -165,3 +165,109 @@ footer { text-align: center; font-size: 12px; padding: 24px }
   .shopRow { flex-wrap: wrap }
   .scene h2 { overflow-wrap: anywhere }
 }
+
+/* 0.4 visual patch — keep difficulty in the economy, not the interface. */
+#stage, #stageBar, #stageInfo, .mast p {
+  display: none;
+}
+
+body {
+  background-color: #0b1020;
+  background-image:
+    radial-gradient(ellipse at 4% 12%, #244e62 0%, transparent 42%),
+    radial-gradient(ellipse at 94% 32%, #42365f 0%, transparent 44%),
+    radial-gradient(ellipse at 34% 95%, #163d45 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+article, nav, .wallet {
+  background: linear-gradient(145deg, #e5f7ff16, #10172cc9 55%);
+  border: 1px solid #d9efff30;
+  border-top-color: #eeffff68;
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 #ffffff20,
+    inset 0 -1px 1px #789fca24,
+    0 12px 32px #03071532;
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+nav { border-radius: 16px }
+nav [aria-current], .detail {
+  background: linear-gradient(165deg, #d6d2ff29, #797eaf17);
+  box-shadow: inset 0 1px 0 #ffffff32;
+}
+button {
+  background: linear-gradient(165deg, #dbeaff22, #7789b213);
+  border-color: #d6e9ff35;
+  border-radius: 12px;
+}
+.primary {
+  color: #160f28;
+  background: linear-gradient(165deg, #e4ddff, #b6a1f1 58%, #a693d7);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -2px 3px #67539355;
+}
+.focusButton {
+  color: #cbffec;
+  background: linear-gradient(160deg, #315b57, #173b39);
+}
+button:active:enabled { box-shadow: inset 0 2px 5px #05091570 }
+
+.drop {
+  --drop-tone: #b5a1ff;
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border-color: #c8e9ff45;
+  background:
+    radial-gradient(ellipse at 50% 125%, #7789b63b, transparent 58%),
+    linear-gradient(155deg, #293c50, #121a2b 52%, #23283d);
+  box-shadow: inset 0 1px 2px #ffffff48, inset 0 -6px 22px #06091360;
+}
+.drop::before, .drop::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.drop::before {
+  width: 135%; height: 85%; top: -66%; left: -18%;
+  border-radius: 50%;
+  background: #e5f5ff12;
+  border-bottom: 1px solid #f3ffff50;
+  transform: rotate(-7deg);
+}
+.drop::after {
+  width: 64%; height: 10px; bottom: -8px; left: 18%;
+  border-radius: 50%;
+  background: var(--drop-tone);
+  box-shadow: 0 -3px 24px var(--drop-tone);
+  opacity: .65;
+}
+#rarity { text-shadow: 0 2px 12px #080e2099 }
+#needle { box-shadow: 0 0 7px #fff9 }
+#perfect { box-shadow: 0 0 9px #b9ffe088 }
+#shop { margin-top: 8px }
+
+#cinema::backdrop { background: rgba(3, 5, 13, .96) }
+#cinema .ring {
+  box-shadow: inset 0 0 28px -19px currentColor,
+              0 0 44px -25px currentColor;
+}
+#cinema .ring::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: .35;
+}
+#cinema.moving .ring::after {
+  animation: glass-turn 2.2s cubic-bezier(.15,.7,.25,1) both;
+}
+@keyframes glass-turn {
+  from { transform: rotate(-65deg) scale(.72) }
+  to   { transform: rotate(25deg) scale(1) }
+}

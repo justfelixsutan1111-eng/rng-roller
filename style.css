@@ -271,3 +271,52 @@ button:active:enabled { box-shadow: inset 0 2px 5px #05091570 }
   from { transform: rotate(-65deg) scale(.72) }
   to   { transform: rotate(25deg) scale(1) }
 }
+.game-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .075em;
+}
+.game-title span:last-child { color: #a8ddff }
+
+/* One glass highlight moves between tabs instead of four buttons flashing. */
+nav[aria-label="Game pages"] {
+  position: relative;
+  isolation: isolate;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none }
+
+nav [data-page] {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  min-width: 5.25rem;
+  white-space: nowrap;
+}
+nav [data-page][aria-current="page"] {
+  background: transparent;
+  box-shadow: none;
+  color: #eff9ff;
+}
+nav::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: var(--tab-width, 0px);
+  transform: translateX(var(--tab-x, 0px));
+  box-sizing: border-box;
+  border-radius: 11px;
+  border: 1px solid #c9eaff55;
+  background: linear-gradient(155deg, #d2efff38, #9abdf018);
+  box-shadow: inset 0 1px 0 #effaff55;
+}
+nav.nav-glide::before {
+  transition: transform 280ms cubic-bezier(.22,.8,.25,1), width 220ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  nav.nav-glide::before { transition: none }
+}

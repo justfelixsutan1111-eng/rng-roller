@@ -3,131 +3,161 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>RNG Roller — 0.4 Beta</title>
+  <title>RNG Roller — 0.41 Beta</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="script.js"></script>
 </head>
 <body>
-<main>
-  <header class="mast">
-    <div><h1 class="game-title" aria-label="RNG Roller"><span>RNG</span><span>Roller</span></h1><p>Difficulty Curve</p></div>
-    <span class="tag">0.4 Beta</span>
-  </header>
+  <main>
+    <header class="mast">
+      <h1 class="game-title">RNG <span>Roller</span></h1>
+      <span class="tag">0.41 Beta</span>
+    </header>
 
-  <nav aria-label="Game pages">
-    <button data-page="game" aria-current="page">Game</button>
-    <button data-page="stats">Statistics</button>
-    <button data-page="log">Changelog</button>
-    <button data-page="settings">Settings</button>
-  </nav>
+    <nav aria-label="Game pages">
+      <button data-page="game" aria-current="page">Game</button>
+      <button data-page="stats">Statistics</button>
+      <button data-page="log">Changelog</button>
+      <button data-page="settings">Settings</button>
+    </nav>
 
-  <div class="wallet">
-    <div>Money<strong id="money">$0</strong></div>
-    <div>Luck<strong id="luck">1×</strong></div>
-    <div>Focus<strong id="boost">Inactive</strong></div>
-  </div>
-  <p id="notice" role="status"></p>
-
-  <section id="game" class="page" tabindex="-1">
-    <div class="layout">
-      <div class="column">
-        <article>
-          <header><h2>Roll</h2><span id="mode" class="tag">Manual</span></header>
-          <div id="card" class="drop">
-            <small id="dropLabel">Your drop</small>
-            <strong id="rarity">Ready?</strong>
-            <span id="reward">Roll to discover your first rarity.</span>
-          </div>
-          <div class="controls">
-            <button id="roll" class="primary">Roll</button>
-            <button id="auto">Unlock auto</button>
-          </div>
-          <p id="autoInfo" class="footnote"></p>
-        </article>
-
-        <article>
-          <header><h2>Collection</h2><span id="found" class="tag"></span></header>
-          <p>Select a tier to inspect its current odds.</p>
-          <div id="collection" class="collection"></div>
-          <div id="detail" class="detail" hidden>
-            <header><h3 id="detailName"></h3><button id="close">Close</button></header>
-            <dl id="detailRows"></dl>
-          </div>
-        </article>
-      </div>
-
-      <div class="column">
-        <article>
-          <header><h2>Focus</h2><span id="focusTime" class="tag"></span></header>
-          <p id="focusTerms"></p>
-          <div class="track">
-            <i id="zone"></i><i id="perfect"></i><i id="needle"></i>
-          </div>
-          <button id="focus" class="focusButton">Start focus</button>
-          <p id="focusMsg" role="status">Stop the needle in green. Aim for the pale center for a perfect hit.</p>
-        </article>
-
-        <article>
-          <header><h2>Upgrades</h2><span id="stage" class="tag"></span></header>
-          <progress id="stageBar" max="1" value="0" aria-label="Progress through current stage"></progress>
-          <p id="stageInfo"></p>
-          <div id="shop"></div>
-        </article>
-      </div>
+    <div class="wallet">
+      <div>Money<strong id="money">$0</strong></div>
+      <div>Luck<strong id="luck">1×</strong></div>
+      <div>Focus<strong id="boost">Inactive</strong></div>
     </div>
-  </section>
 
-  <section id="stats" class="page" tabindex="-1" hidden>
-    <article><h2>Statistics</h2><dl id="numbers"></dl></article>
-    <article><h2>Rarity breakdown</h2><div id="bars"></div></article>
-  </section>
+    <p id="notice" role="status"></p>
 
-  <section id="log" class="page" tabindex="-1" hidden>
-    <article>
-      <h2>Changelog</h2>
-      <h3>0.4 Beta · Difficulty Curve</h3>
-      <ul>
-        <li>Focus Reserve adds charges. Focus Recovery shortens the cooldown.</li>
-        <li>Auto Speed now buys rolls per second. All rolls still pay full value.</li>
-        <li>Legendary and higher drops interrupt play for a full-screen reveal.</li>
-      </ul>
-      <h3>0.35 Beta · Quality of life</h3>
-      <p>Configurable auto-stop, Buy Max for Luck, hidden collection entries, and expanded settings.</p>
-      <h3>0.3 Beta · Name change</h3>
-      <p>RNG Roller introduced money, ten rarities, full auto payouts, and roll animations.</p>
-      <h3>0.2 Beta · Improving</h3>
-      <p>Focus applies to auto rolls. Luck is uncapped, and Auto Speed replaces Coin Bonus.</p>
-      <h3>0.15 Beta · Convenience</h3>
-      <p>Removed the manual cooldown and introduced Settings.</p>
-      <h3>0.1 Beta · RNG 101</h3>
-      <p>First release: rolls, rarities, upgrades, Focus, collection, and statistics.</p>
-    </article>
-  </section>
+    <section id="game" class="page" tabindex="-1">
+      <div class="layout">
+        <div class="column">
+          <article>
+            <header>
+              <h2>Roll</h2>
+              <span id="mode" class="tag">Manual</span>
+            </header>
 
-  <section id="settings" class="page" tabindex="-1" hidden>
-    <article>
-      <h2>Settings</h2>
-      <label>Auto-stop at or above<select id="threshold"></select></label>
-      <p>Auto-stop switches auto off. A cinematic alone only pauses it.</p>
-      <label><input id="pauseOutsideGame" type="checkbox"> Pause auto outside Game</label>
-      <label><input id="rollAnimation" type="checkbox"> Animate rolls and rare reveals</label>
-      <label><input id="reducedMotion" type="checkbox"> Reduce motion</label>
-      <p>With effects off, rare drops use a short, still reveal. Your device’s reduced-motion preference is also respected.</p>
-      <label><input id="confirmReset" type="checkbox"> Confirm before resetting progress</label>
-      <button id="reset" class="danger">Reset progress</button>
-    </article>
-  </section>
+            <div id="card" class="drop">
+              <small id="dropLabel">Your drop</small>
+              <strong id="rarity">Ready?</strong>
+              <span id="reward">Roll to discover your first rarity.</span>
+            </div>
 
-  <footer>Saved in this browser · No offline rewards</footer>
-</main>
+            <div class="controls">
+              <button id="roll" class="primary">Roll</button>
+              <button id="auto">Unlock auto · $350</button>
+            </div>
+            <p id="autoInfo"></p>
+          </article>
 
-<dialog id="cinema" aria-labelledby="filmName" aria-describedby="filmReward">
-  <div class="scene">
-    <div class="ring" aria-hidden="true"></div>
-    <small id="filmTier"></small>
-    <h2 id="filmName"></h2>
-    <p id="filmReward"></p>
-  </div>
-</dialog>
+          <article>
+            <header>
+              <h2>Collection</h2>
+              <span id="found" class="tag">0 / 10</span>
+            </header>
+            <p>Select a tier to inspect its current odds.</p>
+            <div id="collection" class="collection"></div>
+
+            <div id="detail" class="detail" hidden>
+              <header>
+                <h3 id="detailName"></h3>
+                <button id="close">Close</button>
+              </header>
+              <dl id="detailRows"></dl>
+            </div>
+          </article>
+        </div>
+
+        <div class="column">
+          <article>
+            <header>
+              <h2>Focus</h2>
+              <span id="focusTime" class="tag">12s cooldown</span>
+            </header>
+            <p id="focusTerms"></p>
+            <div class="track" aria-hidden="true">
+              <i id="zone"></i>
+              <i id="perfect"></i>
+              <i id="needle"></i>
+            </div>
+            <button id="focus" class="focusButton">Start focus</button>
+            <p id="focusMsg" role="status">
+              Stop the needle in green. Aim for the pale center for a perfect hit.
+            </p>
+          </article>
+
+          <article>
+            <h2>Upgrades</h2>
+            <div id="shop"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="stats" class="page" tabindex="-1" hidden>
+      <article><h2>Statistics</h2><dl id="numbers"></dl></article>
+      <article><h2>Rarity breakdown</h2><div id="bars"></div></article>
+    </section>
+
+    <section id="log" class="page" tabindex="-1" hidden>
+      <article>
+        <h2>Changelog</h2>
+
+        <h3>0.41 Beta</h3>
+        <ul>
+          <li>Nav bar scroll animation</li>
+          <li>Roll animation</li>
+        </ul>
+
+        <h3>0.4 Beta</h3>
+        <ul>
+          <li>Focus Reserve adds boosted rolls. Focus Recovery shortens the cooldown.</li>
+          <li>Auto Speed buys rolls per second. Every auto roll pays full value.</li>
+          <li>Legendary and higher drops get a full-screen reveal.</li>
+          <li>Liquid-glass panels</li>
+        </ul>
+
+        <h3>0.35 Beta · Quality of life</h3>
+        <p>Configurable auto-stop, Buy Max for Luck, hidden collection entries, and expanded settings.</p>
+        <h3>0.3 Beta · Name change</h3>
+        <p>RNG Roller introduced money, ten rarities, full auto payouts, and roll animations.</p>
+        <h3>0.2 Beta · Improving</h3>
+        <p>Focus applies to auto rolls. Luck is uncapped, and Auto Speed replaces Coin Bonus.</p>
+        <h3>0.15 Beta · Convenience</h3>
+        <p>Removed the manual cooldown and introduced Settings.</p>
+        <h3>0.1 Beta · RNG 101</h3>
+        <p>First release: rolls, rarities, upgrades, Focus, collection, and statistics.</p>
+      </article>
+    </section>
+
+    <section id="settings" class="page" tabindex="-1" hidden>
+      <article>
+        <h2>Settings</h2>
+
+        <label>Auto-stop at or above <select id="threshold"></select></label>
+        <p>Auto-stop switches auto off. A rare reveal by itself only pauses it.</p>
+
+        <label><input id="pauseOutsideGame" type="checkbox"> Pause auto outside Game</label>
+        <label><input id="rollAnimation" type="checkbox"> Animate rolls and rare reveals</label>
+        <label><input id="reducedMotion" type="checkbox"> Reduce motion</label>
+        <p>With roll effects off, rare drops use a short, still reveal. The game also respects your device’s reduced-motion preference.</p>
+
+        <label><input id="confirmReset" type="checkbox"> Confirm before resetting progress</label>
+        <button id="reset" class="danger">Reset progress</button>
+      </article>
+    </section>
+
+    <footer>Saved in this browser · No offline rewards</footer>
+  </main>
+
+  <dialog id="cinema" aria-labelledby="filmName" aria-describedby="filmReward">
+    <div class="scene">
+      <div class="ring" aria-hidden="true"></div>
+      <small id="filmTier"></small>
+      <h2 id="filmName"></h2>
+      <p id="filmReward"></p>
+    </div>
+  </dialog>
 </body>
 </html>

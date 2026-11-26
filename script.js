@@ -677,6 +677,135 @@
     requestAnimationFrame(frame);
   }
 
+    // ---------- Supabase Cloud Save ----------
+  const SUPABASE_URL = "https://kmfkxqmlqgzkliwvymqt.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_86GvLS4RCfnTDElX6Am8_g_uqNGV5U9";
+  const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY) || null;
+
+  let cloudUser = null;
+  let lastCloudJson = "";
+  let cloudBusy = false;
+
+  function setCloudUI(msg) {
+    if (msg) $("cloudStatus").textContent = msg;
+    $("cloudBadge").textContent = cloudUser ? "Connected" : "Signed out";
+    $("cloudAuth").hidden = !!cloudUser;
+    $("cloudActions").hidden = !cloudUser;
+  }
+
+  async function pushCloud(manual = false) {
+    if (!sb || !cloudUser || cloudBusy) return;
+    const json = JSON.stringify(s);
+    if (!manual && json === lastCloudJson) return;
+
+    cloudBusy = true;
+    try {
+      const bestRarity = Math.max(0, s.collection.map(Boolean).lastIndexOf(true));
+      const { error } = await sb.from("player_saves").upsert({
+        user_id: cloudUser.id,
+        save_data: s,
+        best_rarity: bestRarity,
+        lifetime_earned: s.earned,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      lastCloudJson = json;
+      setCloudUI("Synced as " + cloudUser.email + " · " + new Date().toLocaleTimeString());
+    } catch (err) {
+      setCloudUI("Sync failed: " + (err.message || "check connection"));
+    } finally {
+      cloudBusy = false;
+    }
+  }
+
+  async function pullCloud() {
+    if (!sb || !cloudUser) return;
+    setCloudUI("Checking cloud save...");
+    try {
+      const { data, error } = await sb
+        .from("player_saves")
+        .select("save_data")
+        .eq("user_id", cloudUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.save_data && valid(data.save_data)) {
+        if (data.save_data.earned > s.earned) {
+          s = data.save_data;
+          auto = false;
+          stopped = false;
+          challenge = null;
+          cooldown = performance.now() + Math.min(12000, Math.max(0, s.focusReady - Date.now()));
+          resetClock();
+          lastCloudJson = JSON.stringify(s);
+          changed(true);
+          render();
+          setCloudUI("Loaded cloud save for " + cloudUser.email + ".");
+          return;
+        }
+      }
+      // No cloud save yet, or local save is ahead — upload local save.
+      await pushCloud(true);
+    } catch (err) {
+      setCloudUI("Could not load cloud save: " + (err.message || "check table/RLS"));
+    }
+  }
+
+  if (sb) {
+    $("cloudSignup").onclick = async () => {
+      const email = $("cloudEmail").value.trim();
+      const password = $("cloudPass").value;
+      if (!email || password.length < 6) {
+        setCloudUI("Enter a valid email and a password of at least 6 characters.");
+        return;
+      }
+      setCloudUI("Creating account...");
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) return setCloudUI(error.message);
+      if (!data.session) {
+        setCloudUI("Account created! Check your email to confirm, then log in.");
+      }
+    };
+
+    $("cloudLogin").onclick = async () => {
+      const email = $("cloudEmail").value.trim();
+      const password = $("cloudPass").value;
+      if (!email || !password) return setCloudUI("Enter your email and password.");
+      setCloudUI("Logging in...");
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) setCloudUI(error.message);
+    };
+
+    $("cloudSync").onclick = () => pushCloud(true);
+
+    $("cloudLogout").onclick = async () => {
+      await pushCloud(false);
+      await sb.auth.signOut();
+      cloudUser = null;
+      lastCloudJson = "";
+      setCloudUI("Signed out. Local save is still on this device.");
+    };
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      cloudUser = session?.user || null;
+      if (cloudUser) {
+        setCloudUI("Signed in as " + cloudUser.email + ".");
+        pullCloud();
+      } else {
+        setCloudUI("Sign in to sync your save across devices.");
+      }
+    });
+
+    // Auto-sync every 25s if anything changed.
+    setInterval(() => pushCloud(false), 25000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) pushCloud(false);
+    });
+  } else {
+    setCloudUI("Offline mode — cloud sync unavailable.");
+  }
+
   render();
   flush();
   requestAnimationFrame(frame);

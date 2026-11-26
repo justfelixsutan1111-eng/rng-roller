@@ -569,3 +569,20 @@ nav button:active:enabled {
   background: linear-gradient(160deg, rgba(255, 255, 255, .22), rgba(120, 145, 210, .24));
   border-color: rgba(255, 255, 255, .42);
 }
+
+/* Cloud Save form */
+.cloud-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cloud-form input {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(8, 14, 28, .55);
+}
+#cloudActions { margin-top: 12px; }

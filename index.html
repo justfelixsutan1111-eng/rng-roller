@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>RNG Roller — 0.42 Beta</title>
   <link rel="stylesheet" href="style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
@@ -96,8 +97,14 @@
     </section>
 
     <section id="stats" class="page" tabindex="-1" hidden>
-      <article><h2>Statistics</h2><dl id="numbers"></dl></article>
-      <article><h2>Rarity breakdown</h2><div id="bars"></div></article>
+      <article>
+        <h2>Statistics</h2>
+        <dl id="numbers"></dl>
+      </article>
+      <article>
+        <h2>Rarity breakdown</h2>
+        <div id="bars"></div>
+      </article>
     </section>
 
     <section id="log" class="page" tabindex="-1" hidden>
@@ -112,8 +119,8 @@
 
         <h3>0.41 Beta</h3>
         <ul>
-          <li>Nav bar scroll animation</li>
-          <li>Roll animation</li>
+          <li>nav bar scroll animation</li>
+          <li>roll animation</li>
         </ul>
 
         <h3>0.4 Beta</h3>
@@ -121,17 +128,20 @@
           <li>Focus Reserve adds boosted rolls. Focus Recovery shortens the cooldown.</li>
           <li>Auto Speed buys rolls per second. Every auto roll pays full value.</li>
           <li>Legendary and higher drops get a full-screen reveal.</li>
-          <li>Liquid-glass panels</li>
         </ul>
 
         <h3>0.35 Beta · Quality of life</h3>
         <p>Configurable auto-stop, Buy Max for Luck, hidden collection entries, and expanded settings.</p>
+
         <h3>0.3 Beta · Name change</h3>
         <p>RNG Roller introduced money, ten rarities, full auto payouts, and roll animations.</p>
+
         <h3>0.2 Beta · Improving</h3>
         <p>Focus applies to auto rolls. Luck is uncapped, and Auto Speed replaces Coin Bonus.</p>
+
         <h3>0.15 Beta · Convenience</h3>
         <p>Removed the manual cooldown and introduced Settings.</p>
+
         <h3>0.1 Beta · RNG 101</h3>
         <p>First release: rolls, rarities, upgrades, Focus, collection, and statistics.</p>
       </article>
@@ -151,6 +161,28 @@
 
         <label><input id="confirmReset" type="checkbox"> Confirm before resetting progress</label>
         <button id="reset" class="danger">Reset progress</button>
+      </article>
+
+      <article id="cloudCard">
+        <header>
+          <h2>Cloud Save</h2>
+          <span id="cloudBadge" class="tag">Signed out</span>
+        </header>
+        <p id="cloudStatus">Sign in to sync your save across devices.</p>
+
+        <div id="cloudAuth" class="cloud-form">
+          <input id="cloudEmail" type="email" placeholder="Email" autocomplete="email">
+          <input id="cloudPass" type="password" placeholder="Password (6+ chars)" autocomplete="current-password">
+          <div class="controls">
+            <button id="cloudLogin" class="primary" type="button">Log in</button>
+            <button id="cloudSignup" type="button">Sign up</button>
+          </div>
+        </div>
+
+        <div id="cloudActions" class="controls" hidden>
+          <button id="cloudSync" class="primary" type="button">Sync now</button>
+          <button id="cloudLogout" type="button">Sign out</button>
+        </div>
       </article>
     </section>
 

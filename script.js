@@ -2,8 +2,6 @@
 
 (() => {
   const $ = id => document.getElementById(id);
-  const KEY = "rng-roller-040";
-  const OLD = "rng-roller-035";
   const LIMIT = Number.MAX_SAFE_INTEGER;
   const AUTO_COST = 350;
   const CINEMATIC_MIN = 4;
@@ -64,10 +62,10 @@
     };
   }
 
-  function valid(data, legacy = false) {
-    if (!data || data.version !== (legacy ? 5 : 6) || !data.settings || !data.levels) return false;
+  function valid(data) {
+    if (!data || data.version !== 6 || !data.settings || !data.levels) return false;
 
-    const counts = ["coins", "earned", "manual", "automatic", "attempts",
+    const counts = ["coins", "earned", "spent", "manual", "automatic", "attempts",
       "focusHits", "perfects", "charges", "focusReady"];
     if (!counts.every(k => int(data[k]))) return false;
     if (typeof data.autoOwned !== "boolean") return false;
@@ -75,8 +73,7 @@
 
     const stop = data.settings.autoStopMinRarity;
     if (!int(stop) || stop >= rarities.length) return false;
-    const levelKeys = legacy ? ["luck", "speed", "focus"] : keys;
-    if (!levelKeys.every(k => int(data.levels[k]) && data.levels[k] <= shop[k][3])) return false;
+    if (!keys.every(k => int(data.levels[k]) && data.levels[k] <= shop[k][3])) return false;
     if (data.levels.luck > 1e8 || (!data.autoOwned && data.levels.speed)) return false;
 
     const c = data.collection;
@@ -84,70 +81,18 @@
     if (!int(data.manual + data.automatic) || sum(c) !== data.manual + data.automatic) return false;
     if (sum(c.map((n, i) => n * rarities[i][2])) !== data.earned) return false;
     if (data.focusHits > data.attempts || data.perfects > data.focusHits) return false;
-    if (data.charges > 5 + (legacy ? 0 : data.levels.reserve)) return false;
+    if (data.charges > 5 + data.levels.reserve) return false;
     if (data.charges ? ![2, 3.5].includes(data.multiplier) : data.multiplier !== 1) return false;
 
-    let spent = data.spent;
-    if (legacy) {
-      const { luck, speed, focus } = data.levels;
-      spent = 30 * luck * (luck + 3) + (data.autoOwned ? 1000 : 0) + 150 * (2 ** focus - 1);
-      for (let i = 0; i < speed; i++) spent += Math.ceil(150 * 1.7 ** i);
-    }
-    return int(spent) && data.earned - spent === data.coins;
+    return data.earned - data.spent === data.coins;
   }
 
-  let dirty = false, saveTimer = 0, writable = true;
-
-  function load() {
-    try {
-      const current = localStorage.getItem(KEY);
-      if (current !== null) {
-        const data = JSON.parse(current);
-        if (!valid(data)) throw Error("Invalid save");
-        return data;
-      }
-      const old = localStorage.getItem(OLD);
-      if (old !== null) {
-        const data = JSON.parse(old);
-        if (!valid(data, true)) throw Error("Invalid legacy save");
-        data.version = 6;
-        data.spent = data.earned - data.coins;
-        data.levels.reserve = 0;
-        data.levels.recovery = 0;
-        dirty = true;
-        notice("Imported your 0.35 progress. Your original save is unchanged.");
-        return data;
-      }
-    } catch {
-      writable = false;
-      notice("Could not read a valid save. Playing in memory only; existing data has not been replaced.");
-    }
-    return fresh();
-  }
-
-  let s = load();
-
-  function flush() {
-    clearTimeout(saveTimer);
-    saveTimer = 0;
-    if (!dirty || !writable) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-      dirty = false;
-    } catch {
-      notice("Browser storage is unavailable. Keep this tab open to retain this session.");
-    }
-  }
-  function changed(immediate = false) {
-    dirty = true;
-    if (immediate) flush();
-    else if (!saveTimer && writable) saveTimer = setTimeout(flush, 180);
-  }
+  let s = fresh();
 
   let page = "game", auto = false, stopped = false;
   let selected = null, challenge = null, film = null, pulse = null;
   let credit = 0, last = performance.now(), lastNeedle = last, paint = 0;
-  let cooldown = last + Math.min(12000, Math.max(0, s.focusReady - Date.now()));
+  let cooldown = 0;
 
   const cps = () => 2 + s.levels.speed;
   const width = () => .085 + .006 * s.levels.focus;
@@ -199,6 +144,116 @@
     return lo;
   }
 
+  // ---------- Supabase Cloud Save ----------
+  const SUPABASE_URL = "https://kmfkxqmlqgzkliwvymqt.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_86GvLS4RCfnTDElX6Am8_g_uqNGV5U9";
+  const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY) || null;
+
+  let cloudUser = null;
+  let lastCloudJson = "";
+  let cloudBusy = false;
+  let syncTimer = 0;
+
+  function setCloudUI(msg) {
+    if (msg) $("cloudStatus").textContent = msg;
+    $("cloudBadge").textContent = cloudUser ? "Connected" : "Signed out";
+    $("cloudAuth").hidden = !!cloudUser;
+    $("cloudActions").hidden = !cloudUser;
+  }
+
+  function scheduleSync() {
+    if (!sb || !cloudUser) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => pushCloud(false), 3000);
+  }
+
+  async function pushCloud(force = false) {
+    if (!sb || !cloudUser) return false;
+    if (cloudBusy && !force) return false;
+
+    clearTimeout(syncTimer);
+    syncTimer = 0;
+
+    const json = JSON.stringify(s);
+    if (!force && json === lastCloudJson) return true;
+
+    cloudBusy = true;
+    try {
+      const bestRarity = Math.max(0, s.collection.map(Boolean).lastIndexOf(true));
+      const { error } = await sb.from("player_saves").upsert({
+        user_id: cloudUser.id,
+        save_data: s,
+        best_rarity: bestRarity,
+        lifetime_earned: s.earned,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      lastCloudJson = json;
+      setCloudUI("Synced as " + cloudUser.email + " · " + new Date().toLocaleTimeString());
+      return true;
+    } catch (err) {
+      setCloudUI("Sync failed: " + (err.message || "check connection"));
+      return false;
+    } finally {
+      cloudBusy = false;
+    }
+  }
+
+  function resetViewToFresh(keepSettings = true) {
+    const settings = keepSettings ? { ...s.settings } : null;
+    s = fresh();
+    if (settings) s.settings = settings;
+    auto = false;
+    stopped = false;
+    challenge = null;
+    selected = null;
+    cooldown = 0;
+    resetClock();
+    if (pulse) pulse.cancel();
+
+    $("card").style.removeProperty("--drop-tone");
+    $("rarity").textContent = "Ready?";
+    $("rarity").style.color = "";
+    $("dropLabel").textContent = "Your drop";
+    $("reward").textContent = "Roll to discover your first rarity.";
+    $("focusMsg").textContent = focusHelp;
+    $("zone").style.width = $("perfect").style.width = $("needle").style.left = "0%";
+    render();
+  }
+
+  async function pullCloud() {
+    if (!sb || !cloudUser) return;
+    setCloudUI("Loading cloud save...");
+    try {
+      const { data, error } = await sb
+        .from("player_saves")
+        .select("save_data")
+        .eq("user_id", cloudUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.save_data && valid(data.save_data)) {
+        s = data.save_data;
+        auto = false;
+        stopped = false;
+        challenge = null;
+        selected = null;
+        cooldown = performance.now() + Math.min(12000, Math.max(0, s.focusReady - Date.now()));
+        resetClock();
+        lastCloudJson = JSON.stringify(s);
+        render();
+        setCloudUI("Loaded cloud save for " + cloudUser.email + ".");
+        return;
+      }
+
+      // First time signing in with no cloud save yet — save current session.
+      await pushCloud(true);
+    } catch (err) {
+      setCloudUI("Could not load cloud save: " + (err.message || "check connection"));
+    }
+  }
+
   function buy(k, bulk = false) {
     if (!playable() || challenge || s.levels[k] >= shop[k][3]) return;
     if (k === "speed" && !s.autoOwned) return;
@@ -210,7 +265,7 @@
     s.spent += cost;
     s.levels[k] += count;
     if (k === "speed") resetClock();
-    changed(true);
+    scheduleSync();
     render();
   }
 
@@ -380,7 +435,6 @@
     pulse = null;
     if (!moving() || page !== "game" || typeof name.animate !== "function") return;
 
-    // Restart even if the new roll is the same rarity as the previous roll.
     pulse = name.animate([
       {
         transform: isAuto ? "translateY(1px)" : "translateY(3px) scale(.98)",
@@ -457,16 +511,18 @@
     $("reward").textContent = "+" + cash(reward) + (boosted ? " · Focus boosted" : "");
     $("dropLabel").textContent = stop ? "Auto-stop drop" : "Your drop";
 
-    if (i >= CINEMATIC_MIN) startFilm(i, stop);
-    else {
+    if (i >= CINEMATIC_MIN) {
+      startFilm(i, stop);
+      scheduleSync();
+    } else {
       rollPulse(r[3], isAuto);
       if (stop) {
         auto = false;
         stopped = true;
         resetClock();
+        scheduleSync();
       }
     }
-    changed(stop || !!film);
   }
 
   $("roll").onclick = () => { roll(); render(); };
@@ -477,11 +533,11 @@
       s.coins -= AUTO_COST;
       s.spent += AUTO_COST;
       s.autoOwned = true;
+      scheduleSync();
     }
     auto = !auto;
     stopped = false;
     resetClock();
-    changed(true);
     render();
   };
 
@@ -509,7 +565,6 @@
     $("needle").style.left = 100 * position(c, now) + "%";
     $("focusMsg").textContent = "Stop inside the green zone.";
     resetClock();
-    changed(true);
     render();
   }
 
@@ -533,7 +588,7 @@
       $("focusMsg").textContent = "Miss. No charges spent.";
     }
     resetClock();
-    changed(true);
+    scheduleSync();
     render();
   }
 
@@ -583,7 +638,7 @@
   $("threshold").onchange = () => {
     if (locked()) return;
     s.settings.autoStopMinRarity = Number($("threshold").value);
-    changed(true);
+    scheduleSync();
     render();
   };
   for (const k of prefs) {
@@ -592,165 +647,26 @@
       s.settings[k] = $(k).checked;
       if (k === "pauseOutsideGame") resetClock();
       if (!moving() && pulse) pulse.cancel();
-      changed(true);
+      scheduleSync();
       render();
     };
   }
 
-  $("reset").onclick = () => {
+  $("reset").onclick = async () => {
     if (locked()) return;
-    if (s.settings.confirmReset && !confirm("Reset 0.4 progress? Your original 0.35 save is not changed.")) return;
+    const msg = cloudUser
+      ? "Reset all progress? This will permanently overwrite your cloud save."
+      : "Reset current session progress? This cannot be undone.";
+    if (s.settings.confirmReset && !confirm(msg)) return;
 
-    const settings = { ...s.settings };
-    s = fresh();
-    s.settings = settings;
-    auto = false;
-    stopped = false;
-    challenge = null;
-    selected = null;
-    cooldown = 0;
-    resetClock();
-    if (pulse) pulse.cancel();
-
-    $("card").style.removeProperty("--drop-tone");
-    $("rarity").textContent = "Ready?";
-    $("rarity").style.color = "";
-    $("dropLabel").textContent = "Your drop";
-    $("reward").textContent = "Roll to discover your first rarity.";
-    $("focusMsg").textContent = focusHelp;
-    $("zone").style.width = $("perfect").style.width = $("needle").style.left = "0%";
-    changed(true);
-    render();
+    resetViewToFresh(true);
+    if (cloudUser) {
+      const ok = await pushCloud(true);
+      notice(ok ? "Cloud save reset." : "Reset locally, but cloud sync failed. Tap Sync now to retry.");
+    } else {
+      notice("Session progress reset.");
+    }
   };
-
-  document.addEventListener("visibilitychange", () => {
-    resetClock();
-    if (document.hidden) {
-      if (challenge) finishFocus(true);
-      flush();
-    }
-    render();
-  });
-  window.addEventListener("pagehide", () => {
-    if (challenge) finishFocus(true);
-    resetClock();
-    flush();
-  });
-  window.addEventListener("pageshow", resetClock);
-
-  function frame(now) {
-    const elapsed = Math.max(0, now - last);
-    last = now;
-
-    if (!document.hidden) {
-      if (film) {
-        credit = 0;
-        film.remaining -= elapsed;
-        if (film.remaining <= 0) endFilm();
-      } else if (challenge) {
-        if (now - lastNeedle > 250 || now - challenge.start >= challenge.duration) {
-          finishFocus(true);
-        } else {
-          $("needle").style.left = 100 * position(challenge, now) + "%";
-          lastNeedle = now;
-        }
-      } else if (autoActive()) {
-        // Fractional roll credit is independent of touches and animation duration.
-        // Ignore long stalls rather than paying out a burst of background rolls.
-        credit += Math.min(elapsed, 250) * cps() / 1000;
-        let rolled = false;
-        while (credit >= 1 && autoActive()) {
-          credit -= 1;
-          roll(true);
-          rolled = true;
-        }
-        if (rolled) render();
-      } else {
-        credit = 0;
-      }
-
-      if (now - paint >= 100) {
-        focusButton();
-        paint = now;
-      }
-    }
-    requestAnimationFrame(frame);
-  }
-
-    // ---------- Supabase Cloud Save ----------
-  const SUPABASE_URL = "https://kmfkxqmlqgzkliwvymqt.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_86GvLS4RCfnTDElX6Am8_g_uqNGV5U9";
-  const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY) || null;
-
-  let cloudUser = null;
-  let lastCloudJson = "";
-  let cloudBusy = false;
-
-  function setCloudUI(msg) {
-    if (msg) $("cloudStatus").textContent = msg;
-    $("cloudBadge").textContent = cloudUser ? "Connected" : "Signed out";
-    $("cloudAuth").hidden = !!cloudUser;
-    $("cloudActions").hidden = !cloudUser;
-  }
-
-  async function pushCloud(manual = false) {
-    if (!sb || !cloudUser || cloudBusy) return;
-    const json = JSON.stringify(s);
-    if (!manual && json === lastCloudJson) return;
-
-    cloudBusy = true;
-    try {
-      const bestRarity = Math.max(0, s.collection.map(Boolean).lastIndexOf(true));
-      const { error } = await sb.from("player_saves").upsert({
-        user_id: cloudUser.id,
-        save_data: s,
-        best_rarity: bestRarity,
-        lifetime_earned: s.earned,
-        updated_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      lastCloudJson = json;
-      setCloudUI("Synced as " + cloudUser.email + " · " + new Date().toLocaleTimeString());
-    } catch (err) {
-      setCloudUI("Sync failed: " + (err.message || "check connection"));
-    } finally {
-      cloudBusy = false;
-    }
-  }
-
-  async function pullCloud() {
-    if (!sb || !cloudUser) return;
-    setCloudUI("Checking cloud save...");
-    try {
-      const { data, error } = await sb
-        .from("player_saves")
-        .select("save_data")
-        .eq("user_id", cloudUser.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data?.save_data && valid(data.save_data)) {
-        if (data.save_data.earned > s.earned) {
-          s = data.save_data;
-          auto = false;
-          stopped = false;
-          challenge = null;
-          cooldown = performance.now() + Math.min(12000, Math.max(0, s.focusReady - Date.now()));
-          resetClock();
-          lastCloudJson = JSON.stringify(s);
-          changed(true);
-          render();
-          setCloudUI("Loaded cloud save for " + cloudUser.email + ".");
-          return;
-        }
-      }
-      // No cloud save yet, or local save is ahead — upload local save.
-      await pushCloud(true);
-    } catch (err) {
-      setCloudUI("Could not load cloud save: " + (err.message || "check table/RLS"));
-    }
-  }
 
   if (sb) {
     $("cloudSignup").onclick = async () => {
@@ -784,29 +700,82 @@
       await sb.auth.signOut();
       cloudUser = null;
       lastCloudJson = "";
-      setCloudUI("Signed out. Local save is still on this device.");
+      resetViewToFresh(false);
+      setCloudUI("Signed out. Sign in to load or save progress.");
     };
 
     sb.auth.onAuthStateChange((_event, session) => {
-      cloudUser = session?.user || null;
+      const nextUser = session?.user || null;
+      const switched = nextUser?.id !== cloudUser?.id;
+      cloudUser = nextUser;
       if (cloudUser) {
-        setCloudUI("Signed in as " + cloudUser.email + ".");
-        pullCloud();
+        if (switched) {
+          setCloudUI("Signed in as " + cloudUser.email + ".");
+          pullCloud();
+        }
       } else {
-        setCloudUI("Sign in to sync your save across devices.");
+        setCloudUI("Sign in to save your progress to the cloud. Progress while signed out is not saved.");
       }
     });
 
-    // Auto-sync every 25s if anything changed.
+    // Periodic cloud sync while rolling.
     setInterval(() => pushCloud(false), 25000);
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) pushCloud(false);
-    });
   } else {
-    setCloudUI("Offline mode — cloud sync unavailable.");
+    setCloudUI("Offline mode — cloud saves unavailable.");
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    resetClock();
+    if (document.hidden) {
+      if (challenge) finishFocus(true);
+      pushCloud(false);
+    }
+    render();
+  });
+  window.addEventListener("pagehide", () => {
+    if (challenge) finishFocus(true);
+    resetClock();
+    pushCloud(false);
+  });
+  window.addEventListener("pageshow", resetClock);
+
+  function frame(now) {
+    const elapsed = Math.max(0, now - last);
+    last = now;
+
+    if (!document.hidden) {
+      if (film) {
+        credit = 0;
+        film.remaining -= elapsed;
+        if (film.remaining <= 0) endFilm();
+      } else if (challenge) {
+        if (now - lastNeedle > 250 || now - challenge.start >= challenge.duration) {
+          finishFocus(true);
+        } else {
+          $("needle").style.left = 100 * position(challenge, now) + "%";
+          lastNeedle = now;
+        }
+      } else if (autoActive()) {
+        credit += Math.min(elapsed, 250) * cps() / 1000;
+        let rolled = false;
+        while (credit >= 1 && autoActive()) {
+          credit -= 1;
+          roll(true);
+          rolled = true;
+        }
+        if (rolled) render();
+      } else {
+        credit = 0;
+      }
+
+      if (now - paint >= 100) {
+        focusButton();
+        paint = now;
+      }
+    }
+    requestAnimationFrame(frame);
   }
 
   render();
-  flush();
   requestAnimationFrame(frame);
 })();
